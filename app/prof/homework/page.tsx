@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
 export default function ProfHomeworkPage() {
   const supabase = createClient()
+  const { t, language } = useLanguage()
   const [homework, setHomework] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -63,27 +65,27 @@ export default function ProfHomeworkPage() {
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto py-12">
+    <div className="page-container max-w-5xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-blue-400" />
-            Gestion des Devoirs
+            {t('homeworkTitle')}
           </h1>
           <p className="text-white/50 mt-1">Créez des devoirs pour vos élèves.</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
-          Nouveau Devoir
+          {t('newHomework')}
         </Button>
       </div>
 
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-blue-500/20 border">
-          <h2 className="text-xl font-bold mb-4">Créer un nouveau devoir</h2>
+          <h2 className="text-xl font-bold mb-4">{t('newHomework')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Titre</Label>
+              <Label>{t('homeworkFormTitle')}</Label>
               <Input 
                 value={form.title} 
                 onChange={e => setForm({...form, title: e.target.value})} 
@@ -92,7 +94,7 @@ export default function ProfHomeworkPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Description / Consignes</Label>
+              <Label>{t('homeworkDesc')}</Label>
               <textarea 
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                 value={form.description} 
@@ -102,7 +104,7 @@ export default function ProfHomeworkPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Date d'échéance</Label>
+              <Label>{t('dueDate')}</Label>
               <Input 
                 type="date"
                 value={form.due_date} 
@@ -112,9 +114,9 @@ export default function ProfHomeworkPage() {
               />
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>
               <Button type="submit" variant="gradient" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Créer le devoir'}
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('create')}
               </Button>
             </div>
           </form>

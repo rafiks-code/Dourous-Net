@@ -1,5 +1,8 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import { MODULE_ICONS } from '@/lib/constants'
 import { Badge } from '@/components/ui/badge'
@@ -7,62 +10,65 @@ import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   User, GraduationCap, BookOpen, ClipboardList,
-  FileText, Calendar, TrendingUp, CheckCircle2, Clock, AlertCircle
+  FileText, Calendar, TrendingUp, CheckCircle2, Clock, AlertCircle, Loader2
 } from 'lucide-react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/language-context'
 
-export const dynamic = 'force-dynamic'
+export default function DashboardPage() {
+  const router = useRouter()
+  const { t, language } = useLanguage()
+  const supabase = createClient()
 
-export const metadata = {
-  title: 'Dashboard | Dourous-Net',
-  description: 'Votre espace personnel étudiant',
-}
+  const [user, setUser] = useState<any>(null)
+  const [student, setStudent] = useState<any>(null)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function DashboardPage() {
-  let user = null
-  let student = null
-  let sessions = null
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+      setUser(user)
 
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    if (!user) redirect('/auth/login')
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      setStudent(studentData)
 
-    const { data: studentData } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-    student = studentData
-
-    const { data: sessionsData } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('student_id', user.id)
-      .order('created_at', { ascending: false })
-    sessions = sessionsData
-  } catch (error) {
-    console.error('Supabase error in dashboard:', error)
-    // Avoid crashing completely
-    if (!user) {
-      // Return a basic fallback if we can't even get the user
-      return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+      const { data: sessionsData } = await supabase
+        .from('sessions')
+        .select('*')
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false })
+      setSessions(sessionsData || [])
+      setLoading(false)
     }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading) {
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
   }
 
-  const sessionList = sessions ?? []
+  const sessionList = sessions
   const submitted = sessionList.filter((s) => s.status === 'soumis').length
   const corrected = sessionList.filter((s) => s.status === 'corrigé').length
   const pending = sessionList.filter((s) => s.status === 'en attente').length
 
-  const fullName = student?.full_name || user.user_metadata?.full_name || 'Étudiant'
-  const level = student?.level || user.user_metadata?.level || ''
-  const filiere = student?.filiere || user.user_metadata?.filiere || ''
+  const fullName = student?.full_name || user?.user_metadata?.full_name || t('student')
+  const level = student?.level || user?.user_metadata?.level || ''
+  const filiere = student?.filiere || user?.user_metadata?.filiere || ''
   
-  const initials = fullName && fullName !== 'Étudiant'
+  const initials = fullName && fullName !== t('student')
     ? fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : user.email?.[0]?.toUpperCase() ?? '?'
+    : user?.email?.[0]?.toUpperCase() ?? '?'
 
   const statusVariant = (status: string) => {
     if (status === 'corrigé') return 'success'
@@ -76,8 +82,14 @@ export default async function DashboardPage() {
     return <AlertCircle className="w-3.5 h-3.5" />
   }
 
+  const getStatusText = (status: string) => {
+    if (status === 'corrigé') return t('corrected')
+    if (status === 'soumis') return t('submitted')
+    return t('pending')
+  }
+
   return (
-    <div className="page-container max-w-5xl mx-auto">
+    <div className="page-container max-w-5xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/3 w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl" />
@@ -92,9 +104,9 @@ export default async function DashboardPage() {
           </Avatar>
           <div className="flex-1">
             <h1 className="text-3xl font-black gradient-text">
-              Bonjour, {fullName}
+              {t('welcome')}, {fullName}
             </h1>
-            <p className="text-white/50 text-sm mt-1">{user.email}</p>
+            <p className="text-white/50 text-sm mt-1">{user?.email}</p>
             <div className="flex flex-wrap gap-2 mt-3">
               {level && (
                 <Badge variant="info" className="gap-1">
@@ -107,13 +119,13 @@ export default async function DashboardPage() {
                 </Badge>
               )}
               <Badge variant="success" className="gap-1">
-                <CheckCircle2 className="w-3 h-3" /> Actif
+                <CheckCircle2 className="w-3 h-3" /> {t('active')}
               </Badge>
             </div>
           </div>
-          <div className="text-right text-xs text-white/30">
-            <p>Membre depuis</p>
-            <p className="text-white/50">{user.created_at ? formatDate(user.created_at) : '—'}</p>
+          <div className={`text-xs text-white/30 ${language === 'ar' ? 'text-left' : 'text-right'}`}>
+            <p>{t('activeSince')}</p>
+            <p className="text-white/50">{user?.created_at ? formatDate(user.created_at) : '—'}</p>
           </div>
         </div>
 
@@ -122,10 +134,10 @@ export default async function DashboardPage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Soumissions', value: sessionList.length, icon: <ClipboardList className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-            { label: 'Soumis', value: submitted, icon: <Clock className="w-5 h-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
-            { label: 'Corrigés', value: corrected, icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-            { label: 'En attente', value: pending, icon: <AlertCircle className="w-5 h-5" />, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+            { label: t('submissions'), value: sessionList.length, icon: <ClipboardList className="w-5 h-5" />, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+            { label: t('submitted'), value: submitted, icon: <Clock className="w-5 h-5" />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+            { label: t('corrected'), value: corrected, icon: <CheckCircle2 className="w-5 h-5" />, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+            { label: t('pending'), value: pending, icon: <AlertCircle className="w-5 h-5" />, color: 'text-amber-400', bg: 'bg-amber-500/10' },
           ].map((stat) => (
             <div key={stat.label} className="glass-card p-5 flex items-center gap-4">
               <div className={`w-10 h-10 rounded-xl ${stat.bg} flex items-center justify-center ${stat.color} flex-shrink-0`}>
@@ -144,7 +156,7 @@ export default async function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-indigo-400" />
-              Mes soumissions de devoirs
+              {t('myHomeworkSubmissions')}
             </h2>
             {level && filiere && (
               <Link
@@ -152,7 +164,7 @@ export default async function DashboardPage() {
                 className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
               >
                 <BookOpen className="w-4 h-4" />
-                Voir les modules
+                {t('browseModules')}
               </Link>
             )}
           </div>
@@ -160,10 +172,9 @@ export default async function DashboardPage() {
           {sessionList.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 text-white/10" />
-              <p className="text-white/40">Aucune soumission pour l'instant.</p>
-              <p className="text-white/25 text-sm mt-1">Accédez à un module pour soumettre un devoir.</p>
+              <p className="text-white/40">{t('noSubmissions')}</p>
               <Link href="/modules" className="inline-block mt-4 text-indigo-400 text-sm hover:text-indigo-300">
-                Parcourir les modules →
+                {t('browseModules')} {language === 'ar' ? '←' : '→'}
               </Link>
             </div>
           ) : (
@@ -192,7 +203,7 @@ export default async function DashboardPage() {
                     <div className="col-span-2">
                       <Badge variant={statusVariant(session.status)} className="gap-1 text-xs">
                         {statusIcon(session.status)}
-                        {session.status}
+                        {getStatusText(session.status)}
                       </Badge>
                     </div>
                     <div className="col-span-3 flex justify-end">
@@ -204,7 +215,7 @@ export default async function DashboardPage() {
                           className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all"
                         >
                           <FileText className="w-3.5 h-3.5" />
-                          Voir PDF
+                          PDF
                         </a>
                       ) : (
                         <span className="text-xs text-white/25">—</span>
@@ -221,14 +232,14 @@ export default async function DashboardPage() {
         <section>
           <h2 className="text-xl font-bold flex items-center gap-2 mb-5">
             <User className="w-5 h-5 text-violet-400" />
-            Informations du profil
+            {t('profileInfo')}
           </h2>
           <div className="glass-card p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {[
-              { label: 'Nom complet', value: fullName !== 'Étudiant' ? fullName : '—', icon: <User className="w-4 h-4" /> },
-              { label: 'Email', value: user.email ?? '—', icon: <TrendingUp className="w-4 h-4" /> },
-              { label: 'Niveau', value: level || '—', icon: <GraduationCap className="w-4 h-4" /> },
-              { label: 'Filière', value: filiere || '—', icon: <BookOpen className="w-4 h-4" /> },
+              { label: t('fullName'), value: fullName !== t('student') ? fullName : '—', icon: <User className="w-4 h-4" /> },
+              { label: t('email'), value: user?.email ?? '—', icon: <TrendingUp className="w-4 h-4" /> },
+              { label: t('level'), value: level || '—', icon: <GraduationCap className="w-4 h-4" /> },
+              { label: t('filiere'), value: filiere || '—', icon: <BookOpen className="w-4 h-4" /> },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center text-indigo-400 flex-shrink-0">

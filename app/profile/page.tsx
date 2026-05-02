@@ -1,55 +1,65 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
 import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { User, Mail, GraduationCap, BookOpen, Calendar, Edit2, Shield } from 'lucide-react'
+import { User, Mail, GraduationCap, BookOpen, Calendar, Edit2, Shield, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/language-context'
 
-export const dynamic = 'force-dynamic'
+export default function ProfilePage() {
+  const router = useRouter()
+  const { t, language } = useLanguage()
+  const supabase = createClient()
 
-export const metadata = {
-  title: 'Mon Profil | Dourous-Net',
-  description: 'Gérez vos informations personnelles',
-}
+  const [user, setUser] = useState<any>(null)
+  const [dbUser, setDbUser] = useState<any>(null)
+  const [role, setRole] = useState<string>('')
+  const [loading, setLoading] = useState(true)
 
-export default async function ProfilePage() {
-  let user = null
-  let dbUser = null
-  let role = null
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+      setUser(user)
 
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    
-    if (!user) redirect('/auth/login')
+      const userRole = user.user_metadata?.role === 'professor' ? 'professor' : 'student'
+      setRole(userRole)
 
-    role = user.user_metadata?.role === 'professor' ? 'professor' : 'student'
-
-    if (role === 'professor') {
-      const { data } = await supabase.from('professors').select('*').eq('id', user.id).single()
-      dbUser = data
-    } else {
-      const { data } = await supabase.from('students').select('*').eq('id', user.id).single()
-      dbUser = data
+      if (userRole === 'professor') {
+        const { data } = await supabase.from('professors').select('*').eq('id', user.id).single()
+        setDbUser(data)
+      } else {
+        const { data } = await supabase.from('students').select('*').eq('id', user.id).single()
+        setDbUser(data)
+      }
+      setLoading(false)
     }
-  } catch (error) {
-    console.error('Supabase error in profile:', error)
-    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading) {
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
   }
 
-  const fullName = dbUser?.full_name || user.user_metadata?.full_name || 'Utilisateur'
-  const displayRole = role === 'professor' ? 'Professeur' : 'Étudiant'
-  const level = dbUser?.level || user.user_metadata?.level || ''
-  const filiere = dbUser?.filiere || user.user_metadata?.filiere || ''
-  const subject = dbUser?.subject || user.user_metadata?.subject || ''
+  const fullName = dbUser?.full_name || user?.user_metadata?.full_name || 'Utilisateur'
+  const displayRole = role === 'professor' ? t('professorRole') : t('student')
+  const level = dbUser?.level || user?.user_metadata?.level || ''
+  const filiere = dbUser?.filiere || user?.user_metadata?.filiere || ''
+  const subject = dbUser?.subject || user?.user_metadata?.subject || ''
 
   const initials = fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
-    <div className="page-container max-w-4xl mx-auto py-12">
+    <div className="page-container max-w-4xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-900/15 rounded-full blur-3xl" />
@@ -59,7 +69,7 @@ export default async function ProfilePage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <User className="w-8 h-8 text-indigo-400" />
-            Mon Profil
+            {t('profileTitle')}
           </h1>
           <p className="text-white/50 mt-2">
             Consultez et gérez vos informations personnelles.
@@ -84,10 +94,10 @@ export default async function ProfilePage() {
                     {role === 'professor' ? <Shield className="w-3 h-3" /> : <GraduationCap className="w-3 h-3" />}
                     {displayRole}
                   </Badge>
-                  {user.created_at && (
+                  {user?.created_at && (
                     <span className="text-xs text-white/40 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      Membre depuis {formatDate(user.created_at)}
+                      {t('memberSince')} {formatDate(user.created_at)}
                     </span>
                   )}
                 </div>
@@ -95,7 +105,7 @@ export default async function ProfilePage() {
               <Link href="/settings">
                 <Button variant="secondary" className="gap-2 w-full sm:w-auto mt-4 sm:mt-0">
                   <Edit2 className="w-4 h-4" />
-                  Modifier le profil
+                  {t('editProfile')}
                 </Button>
               </Link>
             </div>
@@ -110,7 +120,7 @@ export default async function ProfilePage() {
                       <User className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-white/40">Nom complet</p>
+                      <p className="text-xs text-white/40">{t('fullName')}</p>
                       <p className="text-sm font-medium text-white">{fullName}</p>
                     </div>
                   </div>
@@ -120,8 +130,8 @@ export default async function ProfilePage() {
                       <Mail className="w-5 h-5" />
                     </div>
                     <div>
-                      <p className="text-xs text-white/40">Adresse email</p>
-                      <p className="text-sm font-medium text-white">{user.email}</p>
+                      <p className="text-xs text-white/40">{t('email')}</p>
+                      <p className="text-sm font-medium text-white">{user?.email}</p>
                     </div>
                   </div>
                 </div>
@@ -138,7 +148,7 @@ export default async function ProfilePage() {
                           <GraduationCap className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs text-white/40">Niveau d'étude</p>
+                          <p className="text-xs text-white/40">{t('level')}</p>
                           <p className="text-sm font-medium text-white">{level || 'Non renseigné'}</p>
                         </div>
                       </div>
@@ -148,7 +158,7 @@ export default async function ProfilePage() {
                           <BookOpen className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="text-xs text-white/40">Filière</p>
+                          <p className="text-xs text-white/40">{t('filiere')}</p>
                           <p className="text-sm font-medium text-white">{filiere || 'Non renseigné'}</p>
                         </div>
                       </div>
@@ -159,7 +169,7 @@ export default async function ProfilePage() {
                         <BookOpen className="w-5 h-5" />
                       </div>
                       <div>
-                        <p className="text-xs text-white/40">Matière enseignée</p>
+                        <p className="text-xs text-white/40">{t('subject')}</p>
                         <p className="text-sm font-medium text-white">{subject || 'Non renseigné'}</p>
                       </div>
                     </div>

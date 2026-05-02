@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { User, Mail, Lock, Trash2, AlertCircle, CheckCircle2, Loader2, Save, LogOut } from 'lucide-react'
+import { useLanguage } from '@/lib/language-context'
 
 export default function SettingsPage() {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const supabase = createClient()
   const [user, setUser] = useState<any>(null)
   const [dbUser, setDbUser] = useState<any>(null)
@@ -54,22 +56,20 @@ export default function SettingsPage() {
     setNameForm(prev => ({ ...prev, loading: true, success: '', error: '' }))
     
     try {
-      // Update Auth Metadata
       const { error: authError } = await supabase.auth.updateUser({
         data: { full_name: nameForm.fullName }
       })
       if (authError) throw authError
 
-      // Update Database Table
       const table = role === 'professor' ? 'professors' : 'students'
       const { error: dbError } = await supabase.from(table).update({ full_name: nameForm.fullName }).eq('id', user.id)
       if (dbError) throw dbError
 
-      setNameForm(prev => ({ ...prev, loading: false, success: 'Nom mis à jour avec succès' }))
+      setNameForm(prev => ({ ...prev, loading: false, success: t('profileUpdated') }))
       setTimeout(() => setNameForm(prev => ({ ...prev, success: '' })), 3000)
     } catch (err: Error | unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      setNameForm(prev => ({ ...prev, loading: false, error: errorMsg }))
+      setNameForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
     }
   }
 
@@ -81,10 +81,10 @@ export default function SettingsPage() {
       const { error } = await supabase.auth.updateUser({ email: emailForm.email })
       if (error) throw error
 
-      setEmailForm(prev => ({ ...prev, loading: false, success: 'Un lien de confirmation a été envoyé à la nouvelle et l\'ancienne adresse email.' }))
+      setEmailForm(prev => ({ ...prev, loading: false, success: t('success') }))
     } catch (err: Error | unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      setEmailForm(prev => ({ ...prev, loading: false, error: errorMsg }))
+      setEmailForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
     }
   }
 
@@ -93,11 +93,11 @@ export default function SettingsPage() {
     setPasswordForm(prev => ({ ...prev, loading: true, success: '', error: '' }))
     
     if (passwordForm.newPassword.length < 6) {
-      setPasswordForm(prev => ({ ...prev, loading: false, error: 'Le mot de passe doit contenir au moins 6 caractères' }))
+      setPasswordForm(prev => ({ ...prev, loading: false, error: t('passwordTooShort') }))
       return
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordForm(prev => ({ ...prev, loading: false, error: 'Les mots de passe ne correspondent pas' }))
+      setPasswordForm(prev => ({ ...prev, loading: false, error: t('passwordsNotMatch') }))
       return
     }
 
@@ -105,11 +105,11 @@ export default function SettingsPage() {
       const { error } = await supabase.auth.updateUser({ password: passwordForm.newPassword })
       if (error) throw error
 
-      setPasswordForm(prev => ({ ...prev, oldPassword: '', newPassword: '', confirmPassword: '', loading: false, success: 'Mot de passe mis à jour avec succès' }))
+      setPasswordForm(prev => ({ ...prev, oldPassword: '', newPassword: '', confirmPassword: '', loading: false, success: t('success') }))
       setTimeout(() => setPasswordForm(prev => ({ ...prev, success: '' })), 3000)
     } catch (err: Error | unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      setPasswordForm(prev => ({ ...prev, loading: false, error: errorMsg }))
+      setPasswordForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
     }
   }
 
@@ -118,21 +118,18 @@ export default function SettingsPage() {
     setDeleteForm(prev => ({ ...prev, loading: true, error: '' }))
 
     if (deleteForm.confirmText !== 'SUPPRIMER') {
-      setDeleteForm(prev => ({ ...prev, loading: false, error: 'Veuillez taper SUPPRIMER pour confirmer' }))
+      setDeleteForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
       return
     }
 
     try {
-      // NOTE: supabase.auth.admin.deleteUser is required to fully delete auth user, 
-      // but for client side, we can clear data or trigger a server-side edge function.
-      // Since we don't have an admin function, we can delete the database record and sign out.
       const table = role === 'professor' ? 'professors' : 'students'
       await supabase.from(table).delete().eq('id', user.id)
       await supabase.auth.signOut()
       router.push('/')
     } catch (err: Error | unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err)
-      setDeleteForm(prev => ({ ...prev, loading: false, error: errorMsg }))
+      setDeleteForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
     }
   }
 
@@ -145,15 +142,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="page-container max-w-4xl mx-auto py-12">
+    <div className="page-container max-w-4xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-indigo-900/10 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 space-y-8">
         <div>
-          <h1 className="text-3xl font-black gradient-text">Paramètres du compte</h1>
-          <p className="text-white/50 mt-2">Gérez vos informations de compte et préférences.</p>
+          <h1 className="text-3xl font-black gradient-text">{t('settingsTitle')}</h1>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -161,11 +157,11 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-400" />
-              Informations personnelles
+              {t('changeName')}
             </h2>
             <form onSubmit={handleUpdateName} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nom complet</Label>
+                <Label htmlFor="fullName">{t('fullName')}</Label>
                 <Input 
                   id="fullName" 
                   value={nameForm.fullName} 
@@ -187,7 +183,7 @@ export default function SettingsPage() {
               
               <Button type="submit" variant="secondary" className="w-full" disabled={nameForm.loading || nameForm.fullName === dbUser?.full_name}>
                 {nameForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Enregistrer
+                {t('save')}
               </Button>
             </form>
           </div>
@@ -196,11 +192,11 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Mail className="w-5 h-5 text-blue-400" />
-              Adresse email
+              {t('changeEmail')}
             </h2>
             <form onSubmit={handleUpdateEmail} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Nouvelle adresse email</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input 
                   id="email" 
                   type="email"
@@ -223,7 +219,7 @@ export default function SettingsPage() {
               
               <Button type="submit" variant="secondary" className="w-full" disabled={emailForm.loading || emailForm.email === user.email}>
                 {emailForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Mettre à jour l&apos;email
+                {t('save')}
               </Button>
             </form>
           </div>
@@ -232,11 +228,11 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit md:col-span-2">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Lock className="w-5 h-5 text-amber-400" />
-              Mot de passe
+              {t('changePassword')}
             </h2>
             <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="newPassword">Nouveau mot de passe</Label>
+                <Label htmlFor="newPassword">{t('newPassword')}</Label>
                 <Input 
                   id="newPassword" 
                   type="password"
@@ -246,7 +242,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+                <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
                 <Input 
                   id="confirmPassword" 
                   type="password"
@@ -270,7 +266,7 @@ export default function SettingsPage() {
                 
                 <Button type="submit" variant="secondary" disabled={passwordForm.loading}>
                   {passwordForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                  Modifier le mot de passe
+                  {t('save')}
                 </Button>
               </div>
             </form>
@@ -280,15 +276,12 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit md:col-span-2 border-red-500/20 bg-red-500/5">
             <h2 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              Zone dangereuse
+              {t('deleteAccount')}
             </h2>
-            <p className="text-sm text-white/50 mb-6">
-              La suppression de votre compte est irréversible. Toutes vos données seront définitivement effacées.
-            </p>
             <form onSubmit={handleDeleteAccount} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="confirmDelete" className="text-red-400/80">
-                  Tapez <strong>SUPPRIMER</strong> pour confirmer
+                  Tapez <strong>SUPPRIMER</strong>
                 </Label>
                 <Input 
                   id="confirmDelete" 
@@ -307,7 +300,7 @@ export default function SettingsPage() {
               
               <Button type="submit" variant="outline" className="text-red-400 border-red-500/30 hover:bg-red-500/10" disabled={deleteForm.loading || deleteForm.confirmText !== 'SUPPRIMER'}>
                 {deleteForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                Supprimer mon compte définitivement
+                {t('deleteAccount')}
               </Button>
             </form>
           </div>

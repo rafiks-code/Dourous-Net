@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
 export default function ProfGradesPage() {
   const supabase = createClient()
+  const { t, language } = useLanguage()
   const [grades, setGrades] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,24 +68,24 @@ export default function ProfGradesPage() {
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto py-12">
+    <div className="page-container max-w-5xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <Award className="w-8 h-8 text-indigo-400" />
-            Gestion des Notes
+            {t('grades')}
           </h1>
           <p className="text-white/50 mt-1">Consultez et ajoutez des notes manuellement.</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
-          Ajouter une note
+          {t('addGrade')}
         </Button>
       </div>
 
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-indigo-500/20 border">
-          <h2 className="text-xl font-bold mb-4">Saisir une nouvelle note</h2>
+          <h2 className="text-xl font-bold mb-4">{t('addGrade')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -103,7 +105,7 @@ export default function ProfGradesPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label>Note / 20</Label>
+                <Label>{t('grade')} / 20</Label>
                 <Input 
                   type="number" 
                   min="0" max="20" step="0.25"
@@ -114,7 +116,7 @@ export default function ProfGradesPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Appréciation</Label>
+              <Label>{t('comment')}</Label>
               <Input 
                 value={form.comment} 
                 onChange={e => setForm({...form, comment: e.target.value})} 
@@ -122,9 +124,9 @@ export default function ProfGradesPage() {
               />
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>
               <Button type="submit" variant="gradient" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enregistrer'}
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('save')}
               </Button>
             </div>
           </form>
@@ -142,8 +144,8 @@ export default function ProfGradesPage() {
           <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
             <div className="col-span-3">Date</div>
             <div className="col-span-4">Élève</div>
-            <div className="col-span-2 text-center">Note</div>
-            <div className="col-span-3">Appréciation</div>
+            <div className="col-span-2 text-center">{t('grade')}</div>
+            <div className="col-span-3">{t('comment')}</div>
           </div>
           <div className="divide-y divide-white/5">
             {grades.map(g => (

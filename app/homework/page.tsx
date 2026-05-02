@@ -1,61 +1,62 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { ClipboardList, Calendar, Clock, AlertCircle, FileText } from 'lucide-react'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { ClipboardList, Calendar, Clock, AlertCircle, FileText, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/language-context'
 
-export const dynamic = 'force-dynamic'
+export default function HomeworkPage() {
+  const router = useRouter()
+  const { t, language } = useLanguage()
+  const supabase = createClient()
 
-export const metadata = {
-  title: 'Devoirs | Dourous-Net',
-  description: 'Gérez vos devoirs et soumissions',
-}
+  const [homeworkList, setHomeworkList] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function HomeworkPage() {
-  let user = null
-  let student = null
-  let homeworks = null
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    if (!user) redirect('/auth/login')
+      const { data: homeworksData } = await supabase
+        .from('homework')
+        .select(`
+          id, title, description, due_date, created_at,
+          professors ( full_name, subject ),
+          submissions ( id, submitted_at, content, student_id )
+        `)
+        .order('due_date', { ascending: true })
 
-    const { data: studentData } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-    student = studentData
+      const formatted = homeworksData?.map(hw => {
+        // Find the submission for the current user
+        const userSubmission = hw.submissions?.find((s: any) => s.student_id === user.id)
+        return {
+          ...hw,
+          submission: userSubmission
+        }
+      }) ?? []
 
-    const { data: homeworksData } = await supabase
-      .from('homework')
-      .select(`
-        id, title, description, due_date, created_at,
-        professors ( full_name, subject ),
-        submissions ( id, submitted_at, content )
-      `)
-      .order('due_date', { ascending: true })
-    homeworks = homeworksData
-  } catch (error) {
-    console.error('Supabase error in homework:', error)
-    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+      setHomeworkList(formatted)
+      setLoading(false)
+    }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading) {
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-blue-400" /></div>
   }
 
-  // Submissions might return an array, filter those that belong to this student
-  const homeworkList = homeworks?.map(hw => {
-    const userSubmission = hw.submissions?.find((s: any) => true) // Wait, can't easily filter in select without eq. Let's fetch submissions separately or map.
-    return {
-      ...hw,
-      submission: userSubmission
-    }
-  }) ?? []
-
   return (
-    <div className="page-container max-w-5xl mx-auto">
+    <div className="page-container max-w-5xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-0 w-96 h-96 bg-blue-900/10 rounded-full blur-3xl" />
       </div>
@@ -64,10 +65,10 @@ export default async function HomeworkPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-blue-400" />
-            Mes Devoirs
+            {t('homeworkTitle')}
           </h1>
           <p className="text-white/50 mt-2">
-            Consultez les devoirs à faire et envoyez vos réponses.
+            {t('homeworkSubtitle')}
           </p>
         </div>
 
@@ -76,9 +77,9 @@ export default async function HomeworkPage() {
             <div className="w-20 h-20 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <ClipboardList className="w-10 h-10 text-blue-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Aucun devoir</h3>
+            <h3 className="text-xl font-bold text-white mb-2">{t('noHomework')}</h3>
             <p className="text-white/50 max-w-sm mx-auto">
-              Vous êtes à jour ! Aucun nouveau devoir n'a été publié.
+              {t('noHomeworkDesc')}
             </p>
           </div>
         ) : (
@@ -91,11 +92,11 @@ export default async function HomeworkPage() {
                 <div key={hw.id} className="glass-card p-6 flex flex-col group">
                   <div className="flex items-start justify-between mb-4">
                     <Badge variant="secondary" className="gap-1.5">
-                      {hw.professors?.subject ?? 'Matière'}
+                      {hw.professors?.subject ?? t('subject')}
                     </Badge>
                     <Badge variant={isSubmitted ? 'success' : isOverdue ? 'warning' : 'info'} className="gap-1 text-xs">
                       {isSubmitted ? <FileText className="w-3.5 h-3.5" /> : isOverdue ? <AlertCircle className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
-                      {isSubmitted ? 'Rendu' : isOverdue ? 'En retard' : 'À faire'}
+                      {isSubmitted ? t('homeworkSubmitted') : isOverdue ? t('overdue') : t('todo')}
                     </Badge>
                   </div>
 
@@ -108,22 +109,22 @@ export default async function HomeworkPage() {
                     <div className="flex items-center gap-4 text-xs text-white/40 bg-white/5 rounded-lg p-3">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-blue-400" />
-                        <span className="font-medium">Échéance: {formatDate(hw.due_date)}</span>
+                        <span className="font-medium">{t('deadline')}: {formatDate(hw.due_date)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 border-l border-white/10 pl-4">
-                        <span>Prof. {hw.professors?.full_name}</span>
+                      <div className={`flex items-center gap-1.5 ${language === 'ar' ? 'border-r pr-4' : 'border-l pl-4'} border-white/10`}>
+                        <span>{t('professor')} {hw.professors?.full_name}</span>
                       </div>
                     </div>
 
                     {isSubmitted ? (
                       <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-medium text-emerald-400">Devoir rendu</p>
-                          <p className="text-xs text-emerald-400/60">Le {formatDate(hw.submission.submitted_at)}</p>
+                          <p className="text-sm font-medium text-emerald-400">{t('homeworkSubmitted')}</p>
+                          <p className="text-xs text-emerald-400/60">{t('submittedOn')} {formatDate(hw.submission.submitted_at)}</p>
                         </div>
                         <a href={hw.submission.content} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
-                            Voir ma copie
+                            {t('viewCopy')}
                           </Button>
                         </a>
                       </div>
@@ -131,7 +132,7 @@ export default async function HomeworkPage() {
                       <Link href={`/homework/${hw.id}/submit`}>
                         <Button variant="gradient" className="w-full gap-2">
                           <FileText className="w-4 h-4" />
-                          Soumettre mon travail
+                          {t('submitWork')}
                         </Button>
                       </Link>
                     )}

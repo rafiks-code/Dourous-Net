@@ -6,9 +6,11 @@ import { BookOpen, Plus, Loader2, FileText, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useLanguage } from '@/lib/language-context'
 
 export default function ProfLessonsPage() {
   const supabase = createClient()
+  const { t, language } = useLanguage()
   const [lessons, setLessons] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -61,27 +63,27 @@ export default function ProfLessonsPage() {
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto py-12">
+    <div className="page-container max-w-5xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-emerald-400" />
-            Gestion des Cours
+            {t('lessonsTitle')}
           </h1>
           <p className="text-white/50 mt-1">Publiez de nouveaux cours pour vos étudiants.</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
-          Nouveau Cours
+          {t('newLesson')}
         </Button>
       </div>
 
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-emerald-500/20 border">
-          <h2 className="text-xl font-bold mb-4">Publier un nouveau cours</h2>
+          <h2 className="text-xl font-bold mb-4">{t('newLesson')}</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Titre du cours</Label>
+              <Label>{t('lessonTitle')}</Label>
               <Input 
                 value={form.title} 
                 onChange={e => setForm({...form, title: e.target.value})} 
@@ -90,7 +92,7 @@ export default function ProfLessonsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Lien vers le document (PDF)</Label>
+              <Label>{t('lessonPdf')}</Label>
               <Input 
                 type="url"
                 value={form.content} 
@@ -98,12 +100,11 @@ export default function ProfLessonsPage() {
                 placeholder="https://..."
                 required
               />
-              <p className="text-xs text-white/40">Insérez le lien vers le fichier de votre cours.</p>
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>Annuler</Button>
+              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>
               <Button type="submit" variant="gradient" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Publier le cours'}
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('publish')}
               </Button>
             </div>
           </form>
@@ -114,7 +115,7 @@ export default function ProfLessonsPage() {
         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-400" /></div>
       ) : lessons.length === 0 ? (
         <div className="glass-card p-16 text-center text-white/50">
-          Vous n'avez pas encore publié de cours.
+          {t('noLessonsDesc')}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -122,11 +123,11 @@ export default function ProfLessonsPage() {
             <div key={lesson.id} className="glass-card p-6 flex flex-col">
               <h3 className="text-lg font-bold text-white mb-2">{lesson.title}</h3>
               <a href={lesson.content} target="_blank" rel="noreferrer" className="text-sm text-emerald-400 flex items-center gap-2 mb-4 hover:underline">
-                <FileText className="w-4 h-4" /> Voir le document
+                <FileText className="w-4 h-4" /> {t('openDocument')}
               </a>
               <div className="mt-auto pt-4 border-t border-white/10 flex justify-end">
                 <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => handleDelete(lesson.id)}>
-                  <Trash2 className="w-4 h-4 mr-2" /> Supprimer
+                  <Trash2 className="w-4 h-4 mr-2" /> {t('delete')}
                 </Button>
               </div>
             </div>

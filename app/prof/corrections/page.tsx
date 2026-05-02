@@ -7,9 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
 export default function ProfCorrectionsPage() {
   const supabase = createClient()
+  const { t, language } = useLanguage()
   const [submissions, setSubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSub, setSelectedSub] = useState<any>(null)
@@ -57,9 +59,7 @@ export default function ProfCorrectionsPage() {
       comment: form.comment
     })
 
-    // Delete submission or mark as corrected - since there is no status in submissions, we just delete or leave it.
-    // Let's delete it so it removes from pending, or keep it to have history. The prompt implies "pending homework to correct", so deleting is simpler or we can just add a status.
-    // We will just delete from submissions to clear the queue for simplicity.
+    // Delete submission or mark as corrected
     await supabase.from('submissions').delete().eq('id', selectedSub.id)
 
     setForm({ grade: '', comment: '' })
@@ -69,12 +69,12 @@ export default function ProfCorrectionsPage() {
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto py-12">
+    <div className="page-container max-w-5xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-            Corrections
+            {t('correction')}
           </h1>
           <p className="text-white/50 mt-1">Évaluez les devoirs soumis par vos élèves.</p>
         </div>
@@ -90,7 +90,7 @@ export default function ProfCorrectionsPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-3">
-            <h2 className="font-semibold text-white/70 px-2">Copies en attente ({submissions.length})</h2>
+            <h2 className="font-semibold text-white/70 px-2">{t('toCorrect')} ({submissions.length})</h2>
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
               {submissions.map(sub => (
                 <button
@@ -101,6 +101,7 @@ export default function ProfCorrectionsPage() {
                       ? 'bg-emerald-500/20 border-emerald-500 text-white' 
                       : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/70'
                   }`}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
                 >
                   <p className="font-bold mb-1 truncate">{sub.students?.full_name}</p>
                   <p className="text-xs opacity-70 mb-2 truncate">Devoir: {sub.homework?.title}</p>
@@ -122,7 +123,7 @@ export default function ProfCorrectionsPage() {
                   </div>
                   <a href={selectedSub.content} target="_blank" rel="noreferrer">
                     <Button variant="outline" className="gap-2 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10">
-                      <FileText className="w-4 h-4" /> Voir la copie
+                      <FileText className="w-4 h-4" /> {t('viewCopy')}
                     </Button>
                   </a>
                 </div>
@@ -130,7 +131,7 @@ export default function ProfCorrectionsPage() {
                 <form onSubmit={handleCorrect} className="space-y-5">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Note / 20</Label>
+                      <Label>{t('grade')} / 20</Label>
                       <Input 
                         type="number" 
                         min="0" max="20" step="0.25"
@@ -142,7 +143,7 @@ export default function ProfCorrectionsPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Appréciation / Commentaire</Label>
+                    <Label>{t('comment')}</Label>
                     <textarea 
                       className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[100px]"
                       value={form.comment} 
@@ -152,7 +153,7 @@ export default function ProfCorrectionsPage() {
                   </div>
                   <div className="flex justify-end pt-2">
                     <Button type="submit" variant="gradient" className="from-emerald-500 to-teal-500 shadow-emerald-500/25" disabled={submitting}>
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Enregistrer la note'}
+                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('correct')}
                     </Button>
                   </div>
                 </form>

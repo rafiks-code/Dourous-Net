@@ -7,9 +7,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { formatDate } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
 export default function MessagesPage() {
   const supabase = createClient()
+  const { t, language } = useLanguage()
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [professors, setProfessors] = useState<any[]>([])
   const [selectedProf, setSelectedProf] = useState<any>(null)
@@ -45,7 +47,6 @@ export default function MessagesPage() {
     }
 
     loadMessages()
-    // A real app would subscribe to changes here
   }, [selectedProf, currentUser])
 
   const handleSend = async (e: React.FormEvent) => {
@@ -59,10 +60,7 @@ export default function MessagesPage() {
     }
 
     setNewMessage('')
-    
-    // Optimistic update
     setMessages(prev => [...prev, { ...msg, id: Date.now(), sent_at: new Date().toISOString() }])
-
     await supabase.from('messages').insert([msg])
   }
 
@@ -75,7 +73,7 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className="page-container max-w-6xl mx-auto h-[calc(100vh-6rem)]">
+    <div className="page-container max-w-6xl mx-auto h-[calc(100vh-6rem)]" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-900/10 rounded-full blur-3xl" />
       </div>
@@ -84,18 +82,15 @@ export default function MessagesPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <MessageSquare className="w-8 h-8 text-indigo-400" />
-            Messagerie
+            {t('messagesTitle')}
           </h1>
-          <p className="text-white/50 mt-2">
-            Discutez directement avec vos professeurs.
-          </p>
         </div>
 
         <div className="flex-1 glass-card overflow-hidden flex flex-col md:flex-row">
           {/* Sidebar */}
-          <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 flex flex-col">
+          <div className={`w-full md:w-80 border-b md:border-b-0 ${language === 'ar' ? 'md:border-l' : 'md:border-r'} border-white/10 flex flex-col`}>
             <div className="p-4 border-b border-white/10 bg-white/5">
-              <h2 className="font-semibold text-white">Professeurs</h2>
+              <h2 className="font-semibold text-white">{t('professors')}</h2>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
               {professors.map(prof => (
@@ -105,6 +100,7 @@ export default function MessagesPage() {
                   className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
                     selectedProf?.id === prof.id ? 'bg-indigo-500/20 text-white' : 'hover:bg-white/5 text-white/70'
                   }`}
+                  dir={language === 'ar' ? 'rtl' : 'ltr'}
                 >
                   <Avatar className="h-10 w-10 border border-white/10">
                     <AvatarFallback className="bg-indigo-500/20 text-indigo-400">
@@ -129,7 +125,6 @@ export default function MessagesPage() {
           <div className="flex-1 flex flex-col bg-[#07071a]/50">
             {selectedProf ? (
               <>
-                {/* Chat Header */}
                 <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback className="bg-indigo-500/20 text-indigo-400">
@@ -142,7 +137,6 @@ export default function MessagesPage() {
                   </div>
                 </div>
 
-                {/* Messages List */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
@@ -168,13 +162,12 @@ export default function MessagesPage() {
                   )}
                 </div>
 
-                {/* Input Area */}
                 <div className="p-4 bg-white/5 border-t border-white/10">
                   <form onSubmit={handleSend} className="flex gap-2">
                     <Input
                       value={newMessage}
                       onChange={e => setNewMessage(e.target.value)}
-                      placeholder="Écrivez votre message..."
+                      placeholder={t('typeMessage')}
                       className="flex-1 bg-black/20"
                     />
                     <Button type="submit" variant="gradient" size="icon" disabled={!newMessage.trim()}>
@@ -188,8 +181,7 @@ export default function MessagesPage() {
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <User className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-medium text-white mb-2">Vos Messages</h3>
-                <p className="max-w-xs">Sélectionnez un professeur dans la liste pour démarrer une conversation.</p>
+                <h3 className="text-xl font-medium text-white mb-2">{t('selectConversation')}</h3>
               </div>
             )}
           </div>

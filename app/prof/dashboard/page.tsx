@@ -1,68 +1,76 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { BookOpen, Users, ClipboardList, CheckCircle2, TrendingUp } from 'lucide-react'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { BookOpen, Users, ClipboardList, CheckCircle2, TrendingUp, Loader2 } from 'lucide-react'
+import { useLanguage } from '@/lib/language-context'
 
-export const metadata = {
-  title: 'Dashboard Professeur | Dourous-Net',
-  description: 'Espace professeur',
-}
+export default function ProfDashboardPage() {
+  const router = useRouter()
+  const { t, language } = useLanguage()
+  const supabase = createClient()
 
-export default async function ProfDashboardPage() {
-  let user = null
-  let prof = null
-  let studentsCount = 0
-  let lessonsCount = 0
-  let pendingHomework = 0
-  let recentSubmissions = null
+  const [user, setUser] = useState<any>(null)
+  const [prof, setProf] = useState<any>(null)
+  const [stats, setStats] = useState({ students: 0, lessons: 0, pending: 0 })
+  const [recentSubmissions, setRecentSubmissions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    if (!user) redirect('/auth/login')
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
+      setUser(user)
 
-    const { data: profData } = await supabase
-      .from('professors')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-    prof = profData
+      const { data: profData } = await supabase
+        .from('professors')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      setProf(profData)
 
-    const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
-    studentsCount = sCount || 0
+      const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
+      const { count: lCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
+      const { count: pCount } = await supabase.from('submissions').select('id, homework!inner(prof_id)').eq('homework.prof_id', user.id)
+      
+      setStats({
+        students: sCount || 0,
+        lessons: lCount || 0,
+        pending: pCount || 0
+      })
 
-    const { count: lCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
-    lessonsCount = lCount || 0
-
-    const { count: pCount } = await supabase.from('submissions').select('id, homework!inner(prof_id)').eq('homework.prof_id', user.id)
-    pendingHomework = pCount || 0
-    
-    const { data: recent } = await supabase
-      .from('submissions')
-      .select('id, submitted_at, students(full_name), homework!inner(title)')
-      .eq('homework.prof_id', user.id)
-      .order('submitted_at', { ascending: false })
-      .limit(5)
-    recentSubmissions = recent
-  } catch (error) {
-    console.error('Supabase error in prof dashboard:', error)
-    if (!user) {
-      return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+      const { data: recent } = await supabase
+        .from('submissions')
+        .select('id, submitted_at, students(full_name), homework!inner(title)')
+        .eq('homework.prof_id', user.id)
+        .order('submitted_at', { ascending: false })
+        .limit(5)
+      
+      setRecentSubmissions(recent || [])
+      setLoading(false)
     }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading) {
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
   }
 
   return (
-    <div className="page-container max-w-6xl mx-auto">
+    <div className="page-container max-w-6xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 space-y-8">
         <div>
-          <h1 className="text-3xl font-black gradient-text">Bonjour, Prof. {prof?.full_name ?? 'Professeur'}</h1>
-          <p className="text-white/50 mt-1">Matière enseignée : {prof?.subject ?? 'Non définie'}</p>
+          <h1 className="text-3xl font-black gradient-text">{t('hello')} {prof?.full_name ?? ''}</h1>
+          <p className="text-white/50 mt-1">{t('authSubject')} : {prof?.subject ?? '—'}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -71,8 +79,8 @@ export default async function ProfDashboardPage() {
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{studentsCount || 0}</p>
-              <p className="text-xs text-white/40">Élèves inscrits</p>
+              <p className="text-3xl font-black text-white">{stats.students}</p>
+              <p className="text-xs text-white/40">{t('studentsCount')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-emerald-500">
@@ -80,8 +88,8 @@ export default async function ProfDashboardPage() {
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{lessonsCount || 0}</p>
-              <p className="text-xs text-white/40">Cours publiés</p>
+              <p className="text-3xl font-black text-white">{stats.lessons}</p>
+              <p className="text-xs text-white/40">{t('lessonsPublished')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-amber-500">
@@ -89,8 +97,8 @@ export default async function ProfDashboardPage() {
               <ClipboardList className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{pendingHomework || 0}</p>
-              <p className="text-xs text-white/40">Copies à corriger</p>
+              <p className="text-3xl font-black text-white">{stats.pending}</p>
+              <p className="text-xs text-white/40">{t('toCorrect')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-blue-500">
@@ -98,7 +106,7 @@ export default async function ProfDashboardPage() {
               <TrendingUp className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">Actif</p>
+              <p className="text-3xl font-black text-white">{t('active')}</p>
               <p className="text-xs text-white/40">Statut du compte</p>
             </div>
           </div>
@@ -108,9 +116,9 @@ export default async function ProfDashboardPage() {
           <div className="glass-card p-6">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-indigo-400" /> 
-              Activité récente (Soumissions)
+              {t('recentActivity')}
             </h2>
-            {recentSubmissions && recentSubmissions.length > 0 ? (
+            {recentSubmissions.length > 0 ? (
               <div className="space-y-4">
                 {recentSubmissions.map((sub: any) => (
                   <div key={sub.id} className="p-3 bg-white/5 rounded-xl flex items-center justify-between">
@@ -119,7 +127,7 @@ export default async function ProfDashboardPage() {
                       <p className="text-xs text-white/40">Devoir: {sub.homework?.title}</p>
                     </div>
                     <span className="text-[10px] text-white/30 bg-black/20 px-2 py-1 rounded">
-                      Nouveau
+                      {t('new')}
                     </span>
                   </div>
                 ))}

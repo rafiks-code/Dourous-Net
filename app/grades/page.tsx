@@ -1,56 +1,55 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { Award, Calendar, CheckCircle2, Search, TrendingUp } from 'lucide-react'
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { Award, Calendar, CheckCircle2, TrendingUp, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 
-export const dynamic = 'force-dynamic'
+export default function GradesPage() {
+  const router = useRouter()
+  const { t, language } = useLanguage()
+  const supabase = createClient()
 
-export const metadata = {
-  title: 'Notes | Dourous-Net',
-  description: 'Consultez vos notes et évaluations',
-}
+  const [gradesList, setGradesList] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-export default async function GradesPage() {
-  let user = null
-  let student = null
-  let grades = null
+  useEffect(() => {
+    async function loadData() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.push('/auth/login')
+        return
+      }
 
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase.auth.getUser()
-    user = data.user
-    if (!user) redirect('/auth/login')
+      const { data: gradesData } = await supabase
+        .from('grades')
+        .select(`
+          id, subject, grade, comment, created_at,
+          professors ( full_name )
+        `)
+        .eq('student_id', user.id)
+        .order('created_at', { ascending: false })
+        
+      setGradesList(gradesData || [])
+      setLoading(false)
+    }
 
-    const { data: studentData } = await supabase
-      .from('students')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-    student = studentData
+    loadData()
+  }, [router, supabase])
 
-    const { data: gradesData } = await supabase
-      .from('grades')
-      .select(`
-        id, subject, grade, comment, created_at,
-        professors ( full_name )
-      `)
-      .eq('student_id', user.id)
-      .order('created_at', { ascending: false })
-    grades = gradesData
-  } catch (error) {
-    console.error('Supabase error in grades:', error)
-    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+  if (loading) {
+    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-400" /></div>
   }
-
-  const gradesList = grades ?? []
 
   // Calculate average
   const totalGrades = gradesList.reduce((acc, curr) => acc + Number(curr.grade), 0)
   const average = gradesList.length > 0 ? (totalGrades / gradesList.length).toFixed(2) : null
 
   return (
-    <div className="page-container max-w-5xl mx-auto">
+    <div className="page-container max-w-5xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-emerald-900/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-teal-900/10 rounded-full blur-3xl" />
@@ -60,10 +59,10 @@ export default async function GradesPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <Award className="w-8 h-8 text-emerald-400" />
-            Mes Notes
+            {t('gradesTitle')}
           </h1>
           <p className="text-white/50 mt-2">
-            Suivez vos résultats et les appréciations de vos professeurs.
+            {t('gradesSubtitle')}
           </p>
         </div>
 
@@ -75,7 +74,7 @@ export default async function GradesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-white">{gradesList.length}</p>
-              <p className="text-xs text-white/40">Notes reçues</p>
+              <p className="text-xs text-white/40">{t('gradesReceived')}</p>
             </div>
           </div>
           <div className="glass-card p-5 flex items-center gap-4">
@@ -84,7 +83,7 @@ export default async function GradesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-white">{average ? `${average}/20` : '—'}</p>
-              <p className="text-xs text-white/40">Moyenne générale</p>
+              <p className="text-xs text-white/40">{t('generalAverage')}</p>
             </div>
           </div>
         </div>
@@ -94,18 +93,18 @@ export default async function GradesPage() {
             <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Award className="w-10 h-10 text-emerald-400" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Aucune note</h3>
+            <h3 className="text-xl font-bold text-white mb-2">{t('noGrades')}</h3>
             <p className="text-white/50 max-w-sm mx-auto">
-              Vous n'avez pas encore reçu de notes. Continuez vos efforts !
+              {t('noGradesDesc')}
             </p>
           </div>
         ) : (
           <div className="glass-card overflow-hidden">
             <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
               <div className="col-span-3 sm:col-span-2">Date</div>
-              <div className="col-span-4 sm:col-span-3">Matière</div>
-              <div className="col-span-3 sm:col-span-2 text-center">Note</div>
-              <div className="col-span-12 sm:col-span-5 mt-2 sm:mt-0">Appréciation</div>
+              <div className="col-span-4 sm:col-span-3">{t('subject')}</div>
+              <div className="col-span-3 sm:col-span-2 text-center">{t('grade')}</div>
+              <div className="col-span-12 sm:col-span-5 mt-2 sm:mt-0">{t('appreciation')}</div>
             </div>
             <div className="divide-y divide-white/5">
               {gradesList.map((g: any) => {
@@ -120,7 +119,7 @@ export default async function GradesPage() {
                     </div>
                     <div className="col-span-4 sm:col-span-3 flex flex-col">
                       <span className="font-medium text-white">{g.subject}</span>
-                      <span className="text-xs text-white/40">Prof. {g.professors?.full_name}</span>
+                      <span className="text-xs text-white/40">{t('professor')} {g.professors?.full_name}</span>
                     </div>
                     <div className="col-span-3 sm:col-span-2 flex justify-center">
                       <Badge variant={bgVariant as any} className={`text-sm px-3 py-1 font-bold ${gradeColor}`}>
@@ -128,7 +127,7 @@ export default async function GradesPage() {
                       </Badge>
                     </div>
                     <div className="col-span-12 sm:col-span-5 text-sm text-white/70 italic mt-2 sm:mt-0 bg-white/5 p-3 rounded-lg border border-white/5">
-                      "{g.comment || 'Aucune appréciation'}"
+                      "{g.comment || t('noAppreciation')}"
                     </div>
                   </div>
                 )
