@@ -73,9 +73,9 @@ export default function ProfGradesPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <Award className="w-8 h-8 text-indigo-400" />
-            {t('grades')}
+            {t('gradesManagement')}
           </h1>
-          <p className="text-white/50 mt-1">Consultez et ajoutez des notes manuellement.</p>
+          <p className="text-white/50 mt-1">{t('manageGradesDesc')}</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -89,14 +89,14 @@ export default function ProfGradesPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Élève</Label>
+                <Label>{t('studentSingular')}</Label>
                 <select 
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 h-10"
                   value={form.student_id}
                   onChange={e => setForm({...form, student_id: e.target.value})}
                   required
                 >
-                  <option value="" className="bg-[#07071a]">Sélectionner un élève</option>
+                  <option value="" className="bg-[#07071a]">{t('selectStudent')}</option>
                   {students.map(s => (
                     <option key={s.id} value={s.id} className="bg-[#07071a]">
                       {s.full_name} ({s.level} - {s.filiere})
@@ -137,15 +137,15 @@ export default function ProfGradesPage() {
         <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
       ) : grades.length === 0 ? (
         <div className="glass-card p-16 text-center text-white/50">
-          Vous n'avez pas encore attribué de notes.
+          {t('noGradesAssigned')}
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
           <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
-            <div className="col-span-3">Date</div>
-            <div className="col-span-4">Élève</div>
-            <div className="col-span-2 text-center">{t('grade')}</div>
-            <div className="col-span-3">{t('comment')}</div>
+            <div className="col-span-3">{t('tableDate')}</div>
+            <div className="col-span-4">{t('tableStudent')}</div>
+            <div className="col-span-2 text-center">{t('tableGrade')}</div>
+            <div className="col-span-3">{t('tableAppreciation')}</div>
           </div>
           <div className="divide-y divide-white/5">
             {grades.map(g => (

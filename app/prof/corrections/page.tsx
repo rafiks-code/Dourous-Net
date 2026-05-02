@@ -76,7 +76,7 @@ export default function ProfCorrectionsPage() {
             <CheckCircle2 className="w-8 h-8 text-emerald-400" />
             {t('correction')}
           </h1>
-          <p className="text-white/50 mt-1">Évaluez les devoirs soumis par vos élèves.</p>
+          <p className="text-white/50 mt-1">{t('evaluateHomeworks')}</p>
         </div>
       </div>
 
@@ -85,7 +85,7 @@ export default function ProfCorrectionsPage() {
       ) : submissions.length === 0 ? (
         <div className="glass-card p-16 text-center text-white/50">
           <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-emerald-500/20" />
-          <p>Aucune copie en attente de correction.</p>
+          <p>{t('noPendingCorrections')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -148,7 +148,7 @@ export default function ProfCorrectionsPage() {
                       className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[100px]"
                       value={form.comment} 
                       onChange={e => setForm({...form, comment: e.target.value})} 
-                      placeholder="Très bon travail..."
+                      placeholder={t('correctionCommentPlaceholder')}
                     />
                   </div>
                   <div className="flex justify-end pt-2">
@@ -161,7 +161,7 @@ export default function ProfCorrectionsPage() {
             ) : (
               <div className="h-full min-h-[300px] glass-card flex flex-col items-center justify-center text-white/30 p-8 text-center">
                 <AlertCircle className="w-12 h-12 mb-4 opacity-50" />
-                <p>Sélectionnez une copie dans la liste pour commencer la correction.</p>
+                <p>{t('selectCopyToCorrect')}</p>
               </div>
             )}
           </div>

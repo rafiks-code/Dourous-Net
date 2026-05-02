@@ -107,7 +107,7 @@ export default function ProfDashboardPage() {
             </div>
             <div>
               <p className="text-3xl font-black text-white">{t('active')}</p>
-              <p className="text-xs text-white/40">Statut du compte</p>
+              <p className="text-xs text-white/40">{t('accountStatus')}</p>
             </div>
           </div>
         </div>
@@ -124,7 +124,7 @@ export default function ProfDashboardPage() {
                   <div key={sub.id} className="p-3 bg-white/5 rounded-xl flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{sub.students?.full_name}</p>
-                      <p className="text-xs text-white/40">Devoir: {sub.homework?.title}</p>
+                      <p className="text-xs text-white/40">{t('homeworkTitle')}: {sub.homework?.title}</p>
                     </div>
                     <span className="text-[10px] text-white/30 bg-black/20 px-2 py-1 rounded">
                       {t('new')}
@@ -133,7 +133,7 @@ export default function ProfDashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/40 italic">Aucune activité récente.</p>
+              <p className="text-sm text-white/40 italic">{t('noRecentActivity')}</p>
             )}
           </div>
         </div>

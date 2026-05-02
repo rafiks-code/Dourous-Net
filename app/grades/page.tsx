@@ -101,10 +101,10 @@ export default function GradesPage() {
         ) : (
           <div className="glass-card overflow-hidden">
             <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
-              <div className="col-span-3 sm:col-span-2">Date</div>
-              <div className="col-span-4 sm:col-span-3">{t('subject')}</div>
-              <div className="col-span-3 sm:col-span-2 text-center">{t('grade')}</div>
-              <div className="col-span-12 sm:col-span-5 mt-2 sm:mt-0">{t('appreciation')}</div>
+              <div className="col-span-3 sm:col-span-2">{t('tableDate')}</div>
+              <div className="col-span-4 sm:col-span-3">{t('tableSubject')}</div>
+              <div className="col-span-3 sm:col-span-2 text-center">{t('tableGrade')}</div>
+              <div className="col-span-12 sm:col-span-5 mt-2 sm:mt-0">{t('tableAppreciation')}</div>
             </div>
             <div className="divide-y divide-white/5">
               {gradesList.map((g: any) => {

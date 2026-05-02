@@ -173,6 +173,7 @@ export default function DashboardPage() {
             <div className="glass-card p-12 text-center">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 text-white/10" />
               <p className="text-white/40">{t('noSubmissions')}</p>
+              <p className="text-white/25 text-sm mt-1">{t('accessModuleToSubmit')}</p>
               <Link href="/modules" className="inline-block mt-4 text-indigo-400 text-sm hover:text-indigo-300">
                 {t('browseModules')} {language === 'ar' ? '←' : '→'}
               </Link>
@@ -180,10 +181,10 @@ export default function DashboardPage() {
           ) : (
             <div className="glass-card overflow-hidden">
               <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
-                <div className="col-span-4">Module</div>
-                <div className="col-span-3">Date</div>
-                <div className="col-span-2">Statut</div>
-                <div className="col-span-3 text-right">Fichier</div>
+                <div className="col-span-4">{t('tableModule')}</div>
+                <div className="col-span-3">{t('tableDate')}</div>
+                <div className="col-span-2">{t('tableStatus')}</div>
+                <div className="col-span-3 text-right">{t('tableFile')}</div>
               </div>
               <div className="divide-y divide-white/5">
                 {sessionList.map((session) => (
@@ -215,7 +216,7 @@ export default function DashboardPage() {
                           className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all"
                         >
                           <FileText className="w-3.5 h-3.5" />
-                          PDF
+                          {t('viewPdf')}
                         </a>
                       ) : (
                         <span className="text-xs text-white/25">—</span>

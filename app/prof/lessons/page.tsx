@@ -57,7 +57,7 @@ export default function ProfLessonsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce cours ?')) return
+    if (!confirm(t('confirmDeleteLesson'))) return
     await supabase.from('lessons').delete().eq('id', id)
     loadLessons()
   }
@@ -68,9 +68,9 @@ export default function ProfLessonsPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <BookOpen className="w-8 h-8 text-emerald-400" />
-            {t('lessonsTitle')}
+            {t('lessonsManagement')}
           </h1>
-          <p className="text-white/50 mt-1">Publiez de nouveaux cours pour vos étudiants.</p>
+          <p className="text-white/50 mt-1">{t('publishNewLessons')}</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -87,7 +87,7 @@ export default function ProfLessonsPage() {
               <Input 
                 value={form.title} 
                 onChange={e => setForm({...form, title: e.target.value})} 
-                placeholder="Chapitre 1 : Introduction..."
+                placeholder={t('lessonTitlePlaceholder')}
                 required
               />
             </div>

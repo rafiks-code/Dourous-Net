@@ -72,7 +72,7 @@ export default function ProfilePage() {
             {t('profileTitle')}
           </h1>
           <p className="text-white/50 mt-2">
-            Consultez et gérez vos informations personnelles.
+            {t('manageProfileDesc')}
           </p>
         </div>
 
@@ -112,7 +112,7 @@ export default function ProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Informations Générales</h3>
+                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">{t('generalInfo')}</h3>
                 
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 bg-white/5 p-4 rounded-xl">
@@ -138,7 +138,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">Informations Académiques</h3>
+                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">{t('academicInfo')}</h3>
                 
                 <div className="space-y-4">
                   {role === 'student' ? (
@@ -149,7 +149,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <p className="text-xs text-white/40">{t('level')}</p>
-                          <p className="text-sm font-medium text-white">{level || 'Non renseigné'}</p>
+                          <p className="text-sm font-medium text-white">{level || t('notProvided')}</p>
                         </div>
                       </div>
 
@@ -159,7 +159,7 @@ export default function ProfilePage() {
                         </div>
                         <div>
                           <p className="text-xs text-white/40">{t('filiere')}</p>
-                          <p className="text-sm font-medium text-white">{filiere || 'Non renseigné'}</p>
+                          <p className="text-sm font-medium text-white">{filiere || t('notProvided')}</p>
                         </div>
                       </div>
                     </>
@@ -170,7 +170,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <p className="text-xs text-white/40">{t('subject')}</p>
-                        <p className="text-sm font-medium text-white">{subject || 'Non renseigné'}</p>
+                        <p className="text-sm font-medium text-white">{subject || t('notProvided')}</p>
                       </div>
                     </div>
                   )}

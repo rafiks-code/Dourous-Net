@@ -115,7 +115,7 @@ export default function MessagesPage() {
               ))}
               {professors.length === 0 && (
                 <div className="p-4 text-center text-sm text-white/40">
-                  Aucun professeur trouvé.
+                  {t('noProfFound')}
                 </div>
               )}
             </div>
@@ -141,7 +141,7 @@ export default function MessagesPage() {
                   {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
                       <MessageSquare className="w-12 h-12 mb-3" />
-                      <p>Commencez la discussion avec Prof. {selectedProf.full_name}</p>
+                      <p>{t('startDiscussionProf')} {selectedProf.full_name}</p>
                     </div>
                   ) : (
                     messages.map(msg => {
@@ -181,7 +181,8 @@ export default function MessagesPage() {
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <User className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-medium text-white mb-2">{t('selectConversation')}</h3>
+                <h3 className="text-xl font-medium text-white mb-2">{t('yourMessages')}</h3>
+                <p className="max-w-xs">{t('selectProfToStart')}</p>
               </div>
             )}
           </div>

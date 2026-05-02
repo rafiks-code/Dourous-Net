@@ -59,7 +59,7 @@ export default function ProfHomeworkPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce devoir ?')) return
+    if (!confirm(t('confirmDeleteHomework'))) return
     await supabase.from('homework').delete().eq('id', id)
     loadHomework()
   }
@@ -70,9 +70,9 @@ export default function ProfHomeworkPage() {
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <ClipboardList className="w-8 h-8 text-blue-400" />
-            {t('homeworkTitle')}
+            {t('homeworkManagement')}
           </h1>
-          <p className="text-white/50 mt-1">Créez des devoirs pour vos élèves.</p>
+          <p className="text-white/50 mt-1">{t('createHomeworks')}</p>
         </div>
         <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
           <Plus className="w-4 h-4 mr-2" />
@@ -89,17 +89,17 @@ export default function ProfHomeworkPage() {
               <Input 
                 value={form.title} 
                 onChange={e => setForm({...form, title: e.target.value})} 
-                placeholder="Devoir Maison N°1"
+                placeholder={t('homeworkTitlePlaceholder')}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label>{t('homeworkDesc')}</Label>
+              <Label>{t('homeworkDescLabel')}</Label>
               <textarea 
                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px]"
                 value={form.description} 
                 onChange={e => setForm({...form, description: e.target.value})} 
-                placeholder="Exercices 1 à 4 page 12..."
+                placeholder={t('homeworkDescPlaceholder')}
                 required
               />
             </div>

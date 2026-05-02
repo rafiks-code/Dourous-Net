@@ -117,7 +117,7 @@ export default function SettingsPage() {
     e.preventDefault()
     setDeleteForm(prev => ({ ...prev, loading: true, error: '' }))
 
-    if (deleteForm.confirmText !== 'SUPPRIMER') {
+    if (deleteForm.confirmText !== t('deleteConfirmWord')) {
       setDeleteForm(prev => ({ ...prev, loading: false, error: t('errorOccurred') }))
       return
     }
@@ -149,7 +149,8 @@ export default function SettingsPage() {
 
       <div className="relative z-10 space-y-8">
         <div>
-          <h1 className="text-3xl font-black gradient-text">{t('settingsTitle')}</h1>
+          <h1 className="text-3xl font-black gradient-text">{t('accountSettings')}</h1>
+          <p className="text-white/50 mt-2">{t('manageAccountInfo')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -157,7 +158,7 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <User className="w-5 h-5 text-indigo-400" />
-              {t('changeName')}
+              {t('personalInfo')}
             </h2>
             <form onSubmit={handleUpdateName} className="space-y-4">
               <div className="space-y-2">
@@ -276,19 +277,22 @@ export default function SettingsPage() {
           <div className="glass-card p-6 h-fit md:col-span-2 border-red-500/20 bg-red-500/5">
             <h2 className="text-xl font-bold text-red-400 mb-2 flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              {t('deleteAccount')}
+              {t('dangerZone')}
             </h2>
+            <p className="text-sm text-white/50 mb-6">
+              {t('deleteAccountWarning')}
+            </p>
             <form onSubmit={handleDeleteAccount} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="confirmDelete" className="text-red-400/80">
-                  Tapez <strong>SUPPRIMER</strong>
+                  {t('typeDeleteToConfirm')}
                 </Label>
                 <Input 
                   id="confirmDelete" 
                   value={deleteForm.confirmText} 
                   onChange={(e) => setDeleteForm(prev => ({ ...prev, confirmText: e.target.value }))}
                   className="border-red-500/30 focus:border-red-500 focus:ring-red-500"
-                  placeholder="SUPPRIMER"
+                  placeholder={t('deleteConfirmWord')}
                 />
               </div>
               
@@ -298,9 +302,9 @@ export default function SettingsPage() {
                 </div>
               )}
               
-              <Button type="submit" variant="outline" className="text-red-400 border-red-500/30 hover:bg-red-500/10" disabled={deleteForm.loading || deleteForm.confirmText !== 'SUPPRIMER'}>
+              <Button type="submit" variant="outline" className="text-red-400 border-red-500/30 hover:bg-red-500/10" disabled={deleteForm.loading || deleteForm.confirmText !== t('deleteConfirmWord')}>
                 {deleteForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                {t('deleteAccount')}
+                {t('deleteAccountPermanently')}
               </Button>
             </form>
           </div>

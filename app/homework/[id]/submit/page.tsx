@@ -3,14 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, ArrowLeft, Loader2, UploadCloud } from 'lucide-react'
+import { FileText, ArrowLeft, ArrowRight, Loader2, UploadCloud } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/language-context'
 
 export default function SubmitHomeworkPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+  const { t, language } = useLanguage()
   const supabase = createClient()
   const [homework, setHomework] = useState<any>(null)
   const [url, setUrl] = useState('')
@@ -54,9 +56,10 @@ export default function SubmitHomeworkPage({ params }: { params: { id: string } 
   }
 
   return (
-    <div className="page-container max-w-2xl mx-auto py-12">
+    <div className="page-container max-w-2xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <Link href="/homework" className="inline-flex items-center text-sm text-indigo-400 hover:text-indigo-300 mb-6">
-        <ArrowLeft className="w-4 h-4 mr-2" /> Retour aux devoirs
+        {language === 'ar' ? <ArrowRight className="w-4 h-4 ml-2" /> : <ArrowLeft className="w-4 h-4 mr-2" />} 
+        {t('backToHomework')}
       </Link>
       
       <div className="glass-card p-8 animate-scale-in">
@@ -64,35 +67,36 @@ export default function SubmitHomeworkPage({ params }: { params: { id: string } 
           <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-blue-500/20">
             <UploadCloud className="w-8 h-8 text-blue-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white">Soumettre un devoir</h1>
+          <h1 className="text-2xl font-bold text-white">{t('submitAHomework')}</h1>
           <p className="text-white/50 text-sm mt-2">{homework?.title}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
-            <Label>Lien vers votre document PDF</Label>
+            <Label>{t('pdfLinkLabel')}</Label>
             <div className="flex flex-col gap-2">
               <div className="relative">
-                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                <FileText className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 ${language === 'ar' ? 'right-3' : 'left-3'}`} />
                 <Input 
                   type="url" 
                   placeholder="https://drive.google.com/file/d/..." 
-                  className="pl-10" 
+                  className={language === 'ar' ? 'pr-10 text-left' : 'pl-10'} 
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   required 
+                  dir="ltr"
                 />
               </div>
               <p className="text-xs text-white/40">
-                Collez le lien vers votre document (Google Drive, OneDrive, etc.). Assurez-vous qu'il soit public.
+                {t('pdfLinkDesc')}
               </p>
             </div>
           </div>
 
           <Button type="submit" variant="gradient" className="w-full" disabled={loading}>
             {loading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Envoi en cours...</>
-            ) : 'Confirmer l\'envoi'}
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {t('sending')}</>
+            ) : t('confirmSend')}
           </Button>
         </form>
       </div>

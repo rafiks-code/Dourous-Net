@@ -77,9 +77,9 @@ export default function LessonsPage() {
               type="text" 
               placeholder={t('searchPlaceholder')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full bg-white/5 border border-white/10 rounded-xl py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${language === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
-            />
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={`w-full bg-white/5 border border-white/10 rounded-xl py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all ${language === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
+              />
           </div>
         </div>
 

@@ -74,7 +74,7 @@ export default function ProfMessagesPage() {
         <div>
           <h1 className="text-2xl font-black gradient-text flex items-center gap-3">
             <MessageSquare className="w-6 h-6 text-indigo-400" />
-            {t('messagesTitle')}
+            {t('studentMessages')}
           </h1>
         </div>
 
@@ -128,7 +128,7 @@ export default function ProfMessagesPage() {
                   {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
                       <MessageSquare className="w-12 h-12 mb-3" />
-                      <p>Commencez la discussion</p>
+                      <p>{t('sendMessageTo')} {selectedStudent.full_name}</p>
                     </div>
                   ) : (
                     messages.map(msg => {
@@ -168,7 +168,8 @@ export default function ProfMessagesPage() {
                 <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
                   <User className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-medium text-white mb-2">{t('selectConversation')}</h3>
+                <h3 className="text-xl font-medium text-white mb-2">{t('selectStudentTitle')}</h3>
+                <p className="text-sm">{t('selectStudentDesc')}</p>
               </div>
             )}
           </div>
