@@ -20,50 +20,87 @@ export default function ProfGradesPage() {
   const [submitting, setSubmitting] = useState(false)
   
   const [form, setForm] = useState({ student_id: '', grade: '', comment: '' })
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    loadData()
+    const getUser = async () => {
+      setLoading(true)
+      const { data: { user: authUser } } = await supabase.auth.getUser()
+      setUser(authUser)
+      if (authUser) {
+        await fetchStudents()
+        await fetchGrades(authUser.id)
+      }
+      setLoading(false)
+    }
+    getUser()
   }, [])
 
-  async function loadData() {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    // Load grades
-    const { data: gradesData } = await supabase
-      .from('grades')
-      .select('id, student_id, grade, comment, created_at, students(full_name, level)')
-      .eq('prof_id', user.id)
-      .order('created_at', { ascending: false })
-      
-    if (gradesData) setGrades(gradesData)
-
-    // Load students for dropdown
-    const { data: studentsData } = await supabase.from('students').select('id, full_name, level, filiere').order('full_name')
-    if (studentsData) setStudents(studentsData)
-
-    setLoading(false)
+  const fetchStudents = async () => {
+    const { data, error } = await supabase
+      .from('students')
+      .select('id, full_name, level, filiere')
+      .order('full_name')
+    if (error) console.error('Error fetching students:', error)
+    else setStudents(data || [])
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const fetchGrades = async (profId: string) => {
+    const { data, error } = await supabase
+      .from('grades')
+      .select('id, student_id, grade, comment, created_at, subject, students(full_name, level, filiere)')
+      .eq('prof_id', profId)
+      .order('created_at', { ascending: false })
+    if (error) console.error('Error fetching grades:', error)
+    else setGrades(data || [])
+  }
+
+  const saveGrade = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!user) {
+      console.error('No user found')
+      return
+    }
+    if (!form.student_id || !form.grade) {
+      alert('Veuillez remplir tous les champs obligatoires')
+      return
+    }
+
     setSubmitting(true)
+    const { data: prof } = await supabase.from('professors').select('subject').eq('id', user.id).single()
+    const subject = prof?.subject || 'Évaluation'
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: prof } = await supabase.from('professors').select('subject').eq('id', user?.id).single()
-
-    await supabase.from('grades').insert({
+    console.log('Saving grade:', {
       student_id: form.student_id,
-      prof_id: user?.id,
-      subject: prof?.subject || 'Évaluation',
-      grade: form.grade,
-      comment: form.comment
+      prof_id: user.id,
+      subject: subject,
+      grade: parseFloat(form.grade),
+      comment: form.comment,
     })
+
+    const { data, error } = await supabase
+      .from('grades')
+      .insert({
+        student_id: form.student_id,
+        prof_id: user.id,
+        subject: subject,
+        grade: parseFloat(form.grade),
+        comment: form.comment || '',
+      })
+      .select()
+
+    if (error) {
+      console.error('Error saving grade:', error)
+      alert('Erreur: ' + error.message)
+      setSubmitting(false)
+      return
+    }
+
+    console.log('Grade saved successfully:', data)
 
     setForm({ student_id: '', grade: '', comment: '' })
     setShowForm(false)
-    await loadData()
+    await fetchGrades(user.id)
     setSubmitting(false)
   }
 
@@ -86,7 +123,7 @@ export default function ProfGradesPage() {
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-indigo-500/20 border">
           <h2 className="text-xl font-bold mb-4">{t('addGrade')}</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={saveGrade} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>{t('studentSingular')}</Label>
