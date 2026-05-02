@@ -26,17 +26,12 @@ export default function LessonsPage() {
         return
       }
 
-      const { data: student } = await supabase
-        .from('students')
-        .select('level, filiere')
-        .eq('id', user.id)
-        .single()
-
-      const { data: lessonsData } = await supabase
+      const { data: lessonsData, error } = await supabase
         .from('lessons')
         .select('*, professors(full_name)')
-        .or(`level.eq.${student?.level || ''},level.is.null`)
         .order('created_at', { ascending: false })
+      
+      if (error) console.error('Error fetching lessons:', error)
       
       setLessons(lessonsData || [])
       setLoading(false)

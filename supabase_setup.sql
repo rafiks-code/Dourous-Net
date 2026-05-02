@@ -126,3 +126,15 @@ drop policy if exists "Professors see own homework" on homework;
 create policy "Professors see own homework"
 on homework for select
 using (auth.uid() = prof_id);
+
+-- Allow anyone to select lessons
+drop policy if exists "Anyone can see lessons" on lessons;
+create policy "Anyone can see lessons"
+on lessons for select
+using (auth.uid() is not null);
+
+-- Allow anyone to select homework
+drop policy if exists "Anyone can see homework" on homework;
+create policy "Anyone can see homework"
+on homework for select
+using (auth.uid() is not null);
