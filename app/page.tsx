@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { STORAGE_KEYS } from '@/lib/constants'
+import { STORAGE_KEYS, MODULES_BY_LEVEL_FILIERE, FILIERES_BY_LEVEL } from '@/lib/constants'
 import { setToStorage } from '@/lib/utils'
 import { BookOpen, Globe } from 'lucide-react'
 
@@ -12,6 +12,20 @@ export default function LandingPage() {
     setToStorage(STORAGE_KEYS.LANGUAGE, lang)
     router.push('/level')
   }
+
+  const allModules = new Set<string>()
+  Object.values(MODULES_BY_LEVEL_FILIERE).forEach(filieres => {
+    Object.values(filieres).forEach(modules => {
+      modules.forEach(m => allModules.add(m))
+    })
+  })
+  const totalModules = allModules.size
+
+  const allFilieres = new Set<string>()
+  Object.values(FILIERES_BY_LEVEL).forEach(filieres => {
+    filieres.forEach(f => allFilieres.add(f))
+  })
+  const totalFilieres = allFilieres.size
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center overflow-hidden">
@@ -75,11 +89,11 @@ export default function LandingPage() {
         </div>
 
         {/* Stats */}
-        <div className="flex justify-center gap-8 mt-16 animate-fade-in-up stagger-3">
+        <div className="flex justify-center gap-8 mt-16 pb-8 animate-fade-in-up stagger-3">
           {[
-            { label: 'Modules', value: '30+' },
-            { label: 'Niveaux', value: '3' },
-            { label: 'Filières', value: '3' },
+            { label: 'Modules', value: totalModules },
+            { label: 'Niveaux', value: 3 },
+            { label: 'Filières', value: totalFilieres },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-2xl font-bold gradient-text">{stat.value}</p>
@@ -87,12 +101,6 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Bottom globe indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2 text-white/30 text-sm animate-fade-in-up stagger-3">
-        <Globe className="w-4 h-4" />
-        <span>Choisissez votre langue · اختر لغتك</span>
       </div>
     </div>
   )

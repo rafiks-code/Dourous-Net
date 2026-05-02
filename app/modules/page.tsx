@@ -4,25 +4,24 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { MODULES_BY_LEVEL_FILIERE, MODULE_ICONS, MODULE_ARABIC, FILIERE_ARABIC, STORAGE_KEYS, type Level, type Filiere } from '@/lib/constants'
 import { getFromStorage } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 import { ArrowLeft, Search, BookOpen, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ModulesPage() {
   const router = useRouter()
-  const [lang, setLang] = useState<'fr' | 'ar'>('fr')
+  const { language } = useLanguage()
   const [level, setLevel] = useState<Level | null>(null)
   const [filiere, setFiliere] = useState<Filiere | null>(null)
   const [search, setSearch] = useState('')
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const isAr = lang === 'ar'
+  const isAr = language === 'ar'
 
   useEffect(() => {
-    const storedLang = getFromStorage(STORAGE_KEYS.LANGUAGE) as 'fr' | 'ar'
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL) as Level
     const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
 
-    if (storedLang) setLang(storedLang)
     // Check auth first to avoid infinite redirect loop
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -75,12 +74,6 @@ export default function ModulesPage() {
 
       <div className="relative z-10 max-w-4xl mx-auto">
 
-
-        {/* Back to filiere */}
-        <Link href="/filiere" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-6 transition-colors">
-          <ArrowLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
-          {isAr ? 'تغيير الشعبة' : 'Changer de filière'}
-        </Link>
 
         {/* Header */}
         <div className={`flex items-start justify-between mb-8 flex-wrap gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>
@@ -149,9 +142,12 @@ export default function ModulesPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-white text-sm leading-tight">
-                      {isAr ? MODULE_ARABIC[moduleName] || moduleName : moduleName}
+                      {language === 'ar' ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName}
                     </p>
-                    <p className="text-white/40 text-xs mt-1">
+                    <p className="text-indigo-400 text-xs mt-0.5 font-medium">
+                      {language === 'ar' ? moduleName : (MODULE_ARABIC[moduleName] || '')}
+                    </p>
+                    <p className="text-white/40 text-[10px] mt-1.5">
                       {isLoggedIn ? (isAr ? 'انقر للوصول' : 'Cliquer pour accéder') : (isAr ? 'يتطلب تسجيل دخول' : 'Connexion requise')}
                     </p>
                   </div>

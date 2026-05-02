@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { FILIERES_BY_LEVEL, STORAGE_KEYS, type Filiere, type Level, FILIERE_ARABIC } from '@/lib/constants'
 import { getFromStorage, setToStorage } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 import { ChevronRight, FlaskConical, BookText, TrendingUp, Calculator, Wrench, Globe2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -83,14 +84,12 @@ const FILIERE_META: Record<Filiere, {
 
 export default function FilierePage() {
   const router = useRouter()
-  const [lang, setLang] = useState<'fr' | 'ar'>('fr')
+  const { language } = useLanguage()
   const [level, setLevel] = useState<string>('')
-  const isAr = lang === 'ar'
+  const isAr = language === 'ar'
 
   useEffect(() => {
-    const storedLang = getFromStorage(STORAGE_KEYS.LANGUAGE)
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL)
-    if (storedLang === 'ar') setLang('ar')
     if (storedLevel) setLevel(storedLevel)
     else router.push('/level')
   }, [router])
@@ -150,7 +149,10 @@ export default function FilierePage() {
                   </div>
                   <div className={isAr ? 'text-right' : 'text-left'}>
                     <p className="text-lg font-bold text-white">
-                      {isAr ? FILIERE_ARABIC[filiere] || meta.nameAr : filiere}
+                      {language === 'ar' ? (FILIERE_ARABIC[filiere] || filiere) : filiere}
+                    </p>
+                    <p className="text-indigo-400 text-xs mt-0.5 font-medium mb-2">
+                      {language === 'ar' ? filiere : (FILIERE_ARABIC[filiere] || '')}
                     </p>
                     <p className="text-white/50 text-sm mb-2">
                       {isAr ? meta.descriptionAr : meta.description}

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { LEVELS, STORAGE_KEYS, type Level } from '@/lib/constants'
 import { getFromStorage, setToStorage } from '@/lib/utils'
+import { useLanguage } from '@/lib/language-context'
 import { ChevronRight, GraduationCap } from 'lucide-react'
 
 const LEVEL_INFO: Record<Level, { description: string; descriptionAr: string; color: string; year: string }> = {
@@ -29,13 +30,8 @@ const LEVEL_INFO: Record<Level, { description: string; descriptionAr: string; co
 
 export default function LevelPage() {
   const router = useRouter()
-  const [lang, setLang] = useState<'fr' | 'ar'>('fr')
-  const isAr = lang === 'ar'
-
-  useEffect(() => {
-    const stored = getFromStorage(STORAGE_KEYS.LANGUAGE)
-    if (stored === 'ar') setLang('ar')
-  }, [])
+  const { language } = useLanguage()
+  const isAr = language === 'ar'
 
   const handleLevel = (level: Level) => {
     setToStorage(STORAGE_KEYS.LEVEL, level)
