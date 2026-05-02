@@ -1,10 +1,12 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Cairo } from 'next/font/google'
 import './globals.css'
 import { Navbar } from '@/components/Navbar'
 import { createClient } from '@/lib/supabase/server'
+import { LanguageProvider } from '@/lib/language-context'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' })
 
 export const metadata: Metadata = {
   title: 'Dourous-Net | Extranet Éducatif Lycée',
@@ -30,20 +32,35 @@ export default async function RootLayout({
   } = await supabase.auth.getUser()
 
   let userName: string | null = null
+  let userRole: 'student' | 'professor' | null = null
+  
   if (user) {
-    const { data: student } = await supabase
-      .from('students')
-      .select('full_name')
-      .eq('id', user.id)
-      .single()
-    userName = student?.full_name ?? null
+    userRole = user.user_metadata?.role || 'student'
+    
+    if (userRole === 'professor') {
+      const { data: prof } = await supabase
+        .from('professors')
+        .select('full_name')
+        .eq('id', user.id)
+        .single()
+      userName = prof?.full_name ?? null
+    } else {
+      const { data: student } = await supabase
+        .from('students')
+        .select('full_name')
+        .eq('id', user.id)
+        .single()
+      userName = student?.full_name ?? null
+    }
   }
 
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased bg-[#07071a] text-white min-h-screen`}>
-        <Navbar userEmail={user?.email} userName={userName} />
-        <main className="flex-1">{children}</main>
+      <body className={`${inter.variable} ${cairo.variable} font-sans antialiased bg-[#07071a] text-white min-h-screen`}>
+        <LanguageProvider>
+          <Navbar userEmail={user?.email} userName={userName} userRole={userRole} userId={user?.id} />
+          <main className="flex-1">{children}</main>
+        </LanguageProvider>
       </body>
     </html>
   )

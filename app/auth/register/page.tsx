@@ -6,13 +6,23 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { BookOpen, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { BookOpen, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2, User, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
-import { LEVELS, FILIERES, type Level, type Filiere } from '@/lib/constants'
+import { LEVELS, FILIERES, type Level, type Filiere, MODULE_ICONS } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', level: '' as Level | '', filiere: '' as Filiere | '' })
+  const [form, setForm] = useState({ 
+    fullName: '', 
+    email: '', 
+    password: '', 
+    confirmPassword: '', 
+    role: 'student' as 'student' | 'professor',
+    level: '' as Level | '', 
+    filiere: '' as Filiere | '',
+    subject: ''
+  })
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -25,13 +35,48 @@ export default function RegisterPage() {
     setError('')
     if (form.password.length < 6) { setError('Le mot de passe doit contenir au moins 6 caractères.'); return }
     if (form.password !== form.confirmPassword) { setError('Les mots de passe ne correspondent pas.'); return }
-    if (!form.level || !form.filiere) { setError('Veuillez sélectionner votre niveau et filière.'); return }
+    
+    if (form.role === 'student') {
+      if (!form.level || !form.filiere) { setError('Veuillez sélectionner votre niveau et filière.'); return }
+    } else {
+      if (!form.subject) { setError('Veuillez sélectionner la matière enseignée.'); return }
+    }
+
     setLoading(true)
     const supabase = createClient()
-    const { data, error: signUpError } = await supabase.auth.signUp({ email: form.email, password: form.password, options: { data: { full_name: form.fullName } } })
+    const { data, error: signUpError } = await supabase.auth.signUp({ 
+      email: form.email, 
+      password: form.password, 
+      options: { 
+        data: { 
+          full_name: form.fullName,
+          role: form.role,
+          level: form.level || null,
+          filiere: form.filiere || null,
+          subject: form.subject || null
+        } 
+      } 
+    })
+    
     if (signUpError) { setError(signUpError.message); setLoading(false); return }
+    
     if (data.user) {
-      await supabase.from('students').insert({ id: data.user.id, email: form.email, full_name: form.fullName, level: form.level, filiere: form.filiere })
+      if (form.role === 'student') {
+        await supabase.from('students').insert({ 
+          id: data.user.id, 
+          email: form.email, 
+          full_name: form.fullName, 
+          level: form.level, 
+          filiere: form.filiere 
+        })
+      } else {
+        await supabase.from('professors').insert({ 
+          id: data.user.id, 
+          email: form.email, 
+          full_name: form.fullName, 
+          subject: form.subject 
+        })
+      }
     }
     setSuccess(true)
     setLoading(false)
@@ -68,6 +113,36 @@ export default function RegisterPage() {
         </div>
         <div className="glass-card p-8 animate-scale-in">
           <form onSubmit={handleRegister} className="space-y-4">
+            
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                type="button"
+                onClick={() => set('role', 'student')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                  form.role === 'student' 
+                    ? "border-indigo-500 bg-indigo-500/10 text-white" 
+                    : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <User className="w-6 h-6" />
+                <span className="text-sm font-medium">Étudiant</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => set('role', 'professor')}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all",
+                  form.role === 'professor' 
+                    ? "border-indigo-500 bg-indigo-500/10 text-white" 
+                    : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                )}
+              >
+                <GraduationCap className="w-6 h-6" />
+                <span className="text-sm font-medium">Professeur</span>
+              </button>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="fullName">Nom complet</Label>
               <Input id="fullName" type="text" placeholder="Mohamed Amine Benali" value={form.fullName} onChange={(e) => set('fullName', e.target.value)} required />
@@ -76,22 +151,34 @@ export default function RegisterPage() {
               <Label htmlFor="reg-email">Adresse email</Label>
               <Input id="reg-email" type="email" placeholder="votre@email.com" value={form.email} onChange={(e) => set('email', e.target.value)} required />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            {form.role === 'student' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="reg-level">Niveau</Label>
+                  <select id="reg-level" value={form.level} onChange={(e) => set('level', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="" className="bg-[#0d0d25]">Niveau</option>
+                    {LEVELS.map((l) => <option key={l} value={l} className="bg-[#0d0d25]">{l}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-filiere">Filière</Label>
+                  <select id="reg-filiere" value={form.filiere} onChange={(e) => set('filiere', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="" className="bg-[#0d0d25]">Filière</option>
+                    {FILIERES.map((f) => <option key={f} value={f} className="bg-[#0d0d25]">{f}</option>)}
+                  </select>
+                </div>
+              </div>
+            ) : (
               <div className="space-y-2">
-                <Label htmlFor="reg-level">Niveau</Label>
-                <select id="reg-level" value={form.level} onChange={(e) => set('level', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="" className="bg-[#0d0d25]">Niveau</option>
-                  {LEVELS.map((l) => <option key={l} value={l} className="bg-[#0d0d25]">{l}</option>)}
+                <Label htmlFor="reg-subject">Matière enseignée</Label>
+                <select id="reg-subject" value={form.subject} onChange={(e) => set('subject', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <option value="" className="bg-[#0d0d25]">Sélectionner une matière</option>
+                  {Object.keys(MODULE_ICONS).map((m) => <option key={m} value={m} className="bg-[#0d0d25]">{m}</option>)}
                 </select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="reg-filiere">Filière</Label>
-                <select id="reg-filiere" value={form.filiere} onChange={(e) => set('filiere', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="" className="bg-[#0d0d25]">Filière</option>
-                  {FILIERES.map((f) => <option key={f} value={f} className="bg-[#0d0d25]">{f}</option>)}
-                </select>
-              </div>
-            </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="reg-password">Mot de passe</Label>
               <div className="relative">
@@ -123,3 +210,4 @@ export default function RegisterPage() {
     </div>
   )
 }
+

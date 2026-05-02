@@ -40,8 +40,12 @@ export default async function DashboardPage() {
   const corrected = sessionList.filter((s) => s.status === 'corrigé').length
   const pending = sessionList.filter((s) => s.status === 'en attente').length
 
-  const initials = student?.full_name
-    ? student.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+  const fullName = student?.full_name || user.user_metadata?.full_name || 'Étudiant'
+  const level = student?.level || user.user_metadata?.level || ''
+  const filiere = student?.filiere || user.user_metadata?.filiere || ''
+  
+  const initials = fullName && fullName !== 'Étudiant'
+    ? fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : user.email?.[0]?.toUpperCase() ?? '?'
 
   const statusVariant = (status: string) => {
@@ -72,18 +76,18 @@ export default async function DashboardPage() {
           </Avatar>
           <div className="flex-1">
             <h1 className="text-3xl font-black gradient-text">
-              {student?.full_name ?? 'Étudiant'}
+              Bonjour, {fullName}
             </h1>
             <p className="text-white/50 text-sm mt-1">{user.email}</p>
             <div className="flex flex-wrap gap-2 mt-3">
-              {student?.level && (
+              {level && (
                 <Badge variant="info" className="gap-1">
-                  <GraduationCap className="w-3 h-3" /> {student.level}
+                  <GraduationCap className="w-3 h-3" /> {level}
                 </Badge>
               )}
-              {student?.filiere && (
+              {filiere && (
                 <Badge variant="secondary" className="gap-1">
-                  <BookOpen className="w-3 h-3" /> {student.filiere}
+                  <BookOpen className="w-3 h-3" /> {filiere}
                 </Badge>
               )}
               <Badge variant="success" className="gap-1">
@@ -93,7 +97,7 @@ export default async function DashboardPage() {
           </div>
           <div className="text-right text-xs text-white/30">
             <p>Membre depuis</p>
-            <p className="text-white/50">{student?.created_at ? formatDate(student.created_at) : '—'}</p>
+            <p className="text-white/50">{user.created_at ? formatDate(user.created_at) : '—'}</p>
           </div>
         </div>
 
@@ -126,7 +130,7 @@ export default async function DashboardPage() {
               <ClipboardList className="w-5 h-5 text-indigo-400" />
               Mes soumissions de devoirs
             </h2>
-            {student?.level && student?.filiere && (
+            {level && filiere && (
               <Link
                 href="/modules"
                 className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
@@ -140,7 +144,7 @@ export default async function DashboardPage() {
           {sessionList.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 text-white/10" />
-              <p className="text-white/40">Aucune soumission pour l&apos;instant.</p>
+              <p className="text-white/40">Aucune soumission pour l'instant.</p>
               <p className="text-white/25 text-sm mt-1">Accédez à un module pour soumettre un devoir.</p>
               <Link href="/modules" className="inline-block mt-4 text-indigo-400 text-sm hover:text-indigo-300">
                 Parcourir les modules →
@@ -148,14 +152,12 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="glass-card overflow-hidden">
-              {/* Table header */}
               <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-white/5 text-xs font-semibold text-white/40 uppercase tracking-wider border-b border-white/5">
                 <div className="col-span-4">Module</div>
                 <div className="col-span-3">Date</div>
                 <div className="col-span-2">Statut</div>
                 <div className="col-span-3 text-right">Fichier</div>
               </div>
-              {/* Table rows */}
               <div className="divide-y divide-white/5">
                 {sessionList.map((session) => (
                   <div key={session.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-white/3 transition-colors">
@@ -207,10 +209,10 @@ export default async function DashboardPage() {
           </h2>
           <div className="glass-card p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
             {[
-              { label: 'Nom complet', value: student?.full_name ?? '—', icon: <User className="w-4 h-4" /> },
+              { label: 'Nom complet', value: fullName !== 'Étudiant' ? fullName : '—', icon: <User className="w-4 h-4" /> },
               { label: 'Email', value: user.email ?? '—', icon: <TrendingUp className="w-4 h-4" /> },
-              { label: 'Niveau', value: student?.level ?? '—', icon: <GraduationCap className="w-4 h-4" /> },
-              { label: 'Filière', value: student?.filiere ?? '—', icon: <BookOpen className="w-4 h-4" /> },
+              { label: 'Niveau', value: level || '—', icon: <GraduationCap className="w-4 h-4" /> },
+              { label: 'Filière', value: filiere || '—', icon: <BookOpen className="w-4 h-4" /> },
             ].map((item) => (
               <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
                 <div className="w-8 h-8 rounded-lg bg-indigo-500/15 flex items-center justify-center text-indigo-400 flex-shrink-0">
