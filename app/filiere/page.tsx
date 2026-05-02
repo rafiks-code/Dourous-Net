@@ -2,9 +2,9 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { FILIERES, STORAGE_KEYS, type Filiere } from '@/lib/constants'
+import { FILIERES_BY_LEVEL, STORAGE_KEYS, type Filiere, type Level, FILIERE_ARABIC } from '@/lib/constants'
 import { getFromStorage, setToStorage } from '@/lib/utils'
-import { ChevronRight, FlaskConical, BookText, TrendingUp, ArrowLeft } from 'lucide-react'
+import { ChevronRight, FlaskConical, BookText, TrendingUp, Calculator, Wrench, Globe2, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 const FILIERE_META: Record<Filiere, {
@@ -15,29 +15,69 @@ const FILIERE_META: Record<Filiere, {
   color: string
   subjects: string[]
 }> = {
-  'Scientifique': {
+  'TC Sciences': {
     icon: <FlaskConical className="w-7 h-7" />,
-    description: 'Maths, Physique, SVT, Chimie',
-    descriptionAr: 'رياضيات، فيزياء، علوم طبيعية',
-    nameAr: 'علوم',
+    description: 'Sciences, Maths, Physique',
+    descriptionAr: 'علوم، رياضيات، فيزياء',
+    nameAr: 'جذع مشترك علوم',
     color: 'from-emerald-600/30 to-teal-600/20 border-emerald-500/20 hover:border-emerald-400/40',
-    subjects: ['📐 Maths', '⚛️ Physique', '🌿 SVT', '🧪 Chimie'],
+    subjects: ['📐 Maths', '⚛️ Physique', '🌿 Sciences'],
   },
-  'Lettres & Langues': {
+  'TC Lettres': {
     icon: <BookText className="w-7 h-7" />,
-    description: 'Arabe, Français, Anglais, Littérature',
-    descriptionAr: 'عربية، فرنسية، إنجليزية، أدب',
-    nameAr: 'آداب ولغات',
+    description: 'Arabe, Français, Anglais',
+    descriptionAr: 'عربية، فرنسية، إنجليزية',
+    nameAr: 'جذع مشترك آداب',
     color: 'from-amber-600/30 to-orange-600/20 border-amber-500/20 hover:border-amber-400/40',
-    subjects: ['📜 Arabe', '📖 Français', '🇬🇧 Anglais', '📚 Littérature'],
+    subjects: ['📜 Arabe', '📖 Français', '🇬🇧 Anglais'],
   },
-  'Gestion & Économie': {
+  'Sciences Expérimentales': {
+    icon: <FlaskConical className="w-7 h-7" />,
+    description: 'SVT, Physique, Maths',
+    descriptionAr: 'علوم طبيعية، فيزياء، رياضيات',
+    nameAr: 'علوم تجريبية',
+    color: 'from-emerald-600/30 to-teal-600/20 border-emerald-500/20 hover:border-emerald-400/40',
+    subjects: ['🌿 SVT', '⚛️ Physique', '📐 Maths'],
+  },
+  'Mathématiques': {
+    icon: <Calculator className="w-7 h-7" />,
+    description: 'Maths, Physique, Informatique',
+    descriptionAr: 'رياضيات، فيزياء، إعلام آلي',
+    nameAr: 'رياضيات',
+    color: 'from-blue-600/30 to-indigo-600/20 border-blue-500/20 hover:border-blue-400/40',
+    subjects: ['📐 Maths', '⚛️ Physique', '💻 Informatique'],
+  },
+  'Lettres et Philosophie': {
+    icon: <BookText className="w-7 h-7" />,
+    description: 'Philosophie, Arabe, Langues',
+    descriptionAr: 'فلسفة، لغة عربية، لغات',
+    nameAr: 'آداب وفلسفة',
+    color: 'from-amber-600/30 to-orange-600/20 border-amber-500/20 hover:border-amber-400/40',
+    subjects: ['💭 Philosophie', '📜 Arabe', '🗺️ Histoire-Géo'],
+  },
+  'Langues Étrangères': {
+    icon: <Globe2 className="w-7 h-7" />,
+    description: 'Français, Anglais, Espagnol',
+    descriptionAr: 'فرنسية، إنجليزية، إسبانية',
+    nameAr: 'لغات أجنبية',
+    color: 'from-pink-600/30 to-rose-600/20 border-pink-500/20 hover:border-pink-400/40',
+    subjects: ['📖 Français', '🇬🇧 Anglais', '🇪🇸 Espagnol'],
+  },
+  'Technique Mathématique': {
+    icon: <Wrench className="w-7 h-7" />,
+    description: 'Technologie, Maths, Physique',
+    descriptionAr: 'تكنولوجيا، رياضيات، فيزياء',
+    nameAr: 'تقني رياضي',
+    color: 'from-gray-600/30 to-slate-600/20 border-gray-500/20 hover:border-gray-400/40',
+    subjects: ['⚙️ Technologie', '📐 Maths', '📏 Dessin Tech'],
+  },
+  'Gestion et Économie': {
     icon: <TrendingUp className="w-7 h-7" />,
-    description: 'Économie, Comptabilité, Droit',
-    descriptionAr: 'اقتصاد، محاسبة، قانون',
+    description: 'Gestion, Droit, Maths',
+    descriptionAr: 'تسيير، قانون، رياضيات',
     nameAr: 'تسيير واقتصاد',
-    color: 'from-rose-600/30 to-pink-600/20 border-rose-500/20 hover:border-rose-400/40',
-    subjects: ['📊 Économie', '🧾 Comptabilité', '⚖️ Droit', '📐 Maths'],
+    color: 'from-violet-600/30 to-purple-600/20 border-violet-500/20 hover:border-violet-400/40',
+    subjects: ['📊 Économie', '🧾 Comptabilité', '⚖️ Droit'],
   },
 }
 
@@ -93,7 +133,8 @@ export default function FilierePage() {
 
         {/* Filiere cards */}
         <div className="flex flex-col gap-4">
-          {FILIERES.map((filiere, i) => {
+          {level && FILIERES_BY_LEVEL[level as Level]?.map((filiereName, i) => {
+            const filiere = filiereName as Filiere
             const meta = FILIERE_META[filiere]
             return (
               <button
@@ -109,7 +150,7 @@ export default function FilierePage() {
                   </div>
                   <div className={isAr ? 'text-right' : 'text-left'}>
                     <p className="text-lg font-bold text-white">
-                      {isAr ? meta.nameAr : filiere}
+                      {isAr ? FILIERE_ARABIC[filiere] || meta.nameAr : filiere}
                     </p>
                     <p className="text-white/50 text-sm mb-2">
                       {isAr ? meta.descriptionAr : meta.description}

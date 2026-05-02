@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getFromStorage, formatDate } from '@/lib/utils'
-import { STORAGE_KEYS, MODULE_ICONS } from '@/lib/constants'
+import { STORAGE_KEYS, MODULE_ICONS, MODULE_ARABIC, FILIERE_ARABIC, type Level, type Filiere } from '@/lib/constants'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -52,6 +52,8 @@ export default function ModulePage() {
   const [uploadMsg, setUploadMsg] = useState('')
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const [level, setLevel] = useState<Level | null>(null)
+  const [filiere, setFiliere] = useState<Filiere | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isAr = lang === 'ar'
 
@@ -91,7 +93,11 @@ export default function ModulePage() {
 
   useEffect(() => {
     const storedLang = getFromStorage(STORAGE_KEYS.LANGUAGE) as 'fr' | 'ar'
+    const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL) as Level
+    const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
     if (storedLang) setLang(storedLang)
+    if (storedLevel) setLevel(storedLevel)
+    if (storedFiliere) setFiliere(storedFiliere)
     loadData()
   }, [loadData])
 
@@ -181,12 +187,28 @@ export default function ModulePage() {
         </Link>
 
         {/* Module header */}
+        <div className="mb-4 flex items-center gap-2">
+          {level && (
+            <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-medium">
+              {level}
+            </span>
+          )}
+          {level && filiere && <span className="text-white/30">·</span>}
+          {filiere && (
+            <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium">
+              {isAr ? FILIERE_ARABIC[filiere] || filiere : filiere}
+            </span>
+          )}
+        </div>
+        
         <div className={`flex items-center gap-4 mb-10 ${isAr ? 'flex-row-reverse' : ''}`}>
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-500/20 flex items-center justify-center text-3xl border border-white/10 flex-shrink-0">
             {icon}
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black gradient-text">{moduleName}</h1>
+            <h1 className="text-3xl md:text-4xl font-black gradient-text">
+              {isAr ? MODULE_ARABIC[moduleName] || moduleName : moduleName}
+            </h1>
             <p className="text-white/50 text-sm mt-1">
               {courses.length} {isAr ? 'درس' : 'cours'} · {homework.length} {isAr ? 'واجب' : 'devoirs'}
             </p>

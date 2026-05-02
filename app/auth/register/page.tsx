@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BookOpen, Loader2, Eye, EyeOff, AlertCircle, CheckCircle2, User, GraduationCap } from 'lucide-react'
 import Link from 'next/link'
-import { LEVELS, FILIERES, type Level, type Filiere, MODULE_ICONS } from '@/lib/constants'
+import { LEVELS, FILIERES, FILIERES_BY_LEVEL, type Level, type Filiere, MODULE_ICONS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
 export default function RegisterPage() {
@@ -147,16 +147,16 @@ export default function RegisterPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="reg-level">Niveau</Label>
-                  <select id="reg-level" value={form.level} onChange={(e) => set('level', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select id="reg-level" value={form.level} onChange={(e) => { set('level', e.target.value); set('filiere', '') }} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     <option value="" className="bg-[#0d0d25]">Niveau</option>
                     {LEVELS.map((l) => <option key={l} value={l} className="bg-[#0d0d25]">{l}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-filiere">Filière</Label>
-                  <select id="reg-filiere" value={form.filiere} onChange={(e) => set('filiere', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                  <select id="reg-filiere" value={form.filiere} onChange={(e) => set('filiere', e.target.value)} required className="flex h-11 w-full rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500" disabled={!form.level}>
                     <option value="" className="bg-[#0d0d25]">Filière</option>
-                    {FILIERES.map((f) => <option key={f} value={f} className="bg-[#0d0d25]">{f}</option>)}
+                    {form.level && FILIERES_BY_LEVEL[form.level as Level].map((f) => <option key={f} value={f} className="bg-[#0d0d25]">{f}</option>)}
                   </select>
                 </div>
               </div>

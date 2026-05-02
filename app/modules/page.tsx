@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { MODULES_BY_LEVEL_FILIERE, MODULE_ICONS, STORAGE_KEYS, type Level, type Filiere } from '@/lib/constants'
+import { MODULES_BY_LEVEL_FILIERE, MODULE_ICONS, MODULE_ARABIC, FILIERE_ARABIC, STORAGE_KEYS, type Level, type Filiere } from '@/lib/constants'
 import { getFromStorage } from '@/lib/utils'
 import { ArrowLeft, Search, BookOpen, Lock } from 'lucide-react'
 import Link from 'next/link'
@@ -76,6 +76,12 @@ export default function ModulesPage() {
       <div className="relative z-10 max-w-4xl mx-auto">
 
 
+        {/* Back to filiere */}
+        <Link href="/filiere" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-6 transition-colors">
+          <ArrowLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
+          {isAr ? 'تغيير الشعبة' : 'Changer de filière'}
+        </Link>
+
         {/* Header */}
         <div className={`flex items-start justify-between mb-8 flex-wrap gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>
           <div>
@@ -85,7 +91,7 @@ export default function ModulesPage() {
               </span>
               <span className="text-white/30">·</span>
               <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium">
-                {filiere}
+                {isAr && filiere ? FILIERE_ARABIC[filiere] || filiere : filiere}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black">
@@ -142,7 +148,9 @@ export default function ModulesPage() {
                     {icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white text-sm leading-tight">{moduleName}</p>
+                    <p className="font-bold text-white text-sm leading-tight">
+                      {isAr ? MODULE_ARABIC[moduleName] || moduleName : moduleName}
+                    </p>
                     <p className="text-white/40 text-xs mt-1">
                       {isLoggedIn ? (isAr ? 'انقر للوصول' : 'Cliquer pour accéder') : (isAr ? 'يتطلب تسجيل دخول' : 'Connexion requise')}
                     </p>
