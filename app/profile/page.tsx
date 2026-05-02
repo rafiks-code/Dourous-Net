@@ -13,20 +13,29 @@ export const metadata = {
 }
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) redirect('/auth/login')
-
-  const role = user.user_metadata?.role === 'professor' ? 'professor' : 'student'
-
+  let user = null
   let dbUser = null
-  if (role === 'professor') {
-    const { data } = await supabase.from('professors').select('*').eq('id', user.id).single()
-    dbUser = data
-  } else {
-    const { data } = await supabase.from('students').select('*').eq('id', user.id).single()
-    dbUser = data
+  let role = null
+
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    
+    if (!user) redirect('/auth/login')
+
+    role = user.user_metadata?.role === 'professor' ? 'professor' : 'student'
+
+    if (role === 'professor') {
+      const { data } = await supabase.from('professors').select('*').eq('id', user.id).single()
+      dbUser = data
+    } else {
+      const { data } = await supabase.from('students').select('*').eq('id', user.id).single()
+      dbUser = data
+    }
+  } catch (error) {
+    console.error('Supabase error in profile:', error)
+    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
   }
 
   const fullName = dbUser?.full_name || user.user_metadata?.full_name || 'Utilisateur'

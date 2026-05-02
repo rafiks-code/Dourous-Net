@@ -17,23 +17,37 @@ export const metadata = {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  let user = null
+  let student = null
+  let sessions = null
 
-  // Student profile
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    if (!user) redirect('/auth/login')
 
-  // Sessions with stats
-  const { data: sessions } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('student_id', user.id)
-    .order('created_at', { ascending: false })
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    student = studentData
+
+    const { data: sessionsData } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('student_id', user.id)
+      .order('created_at', { ascending: false })
+    sessions = sessionsData
+  } catch (error) {
+    console.error('Supabase error in dashboard:', error)
+    // Avoid crashing completely
+    if (!user) {
+      // Return a basic fallback if we can't even get the user
+      return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+    }
+  }
 
   const sessionList = sessions ?? []
   const submitted = sessionList.filter((s) => s.status === 'soumis').length

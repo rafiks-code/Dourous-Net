@@ -8,28 +8,48 @@ export const metadata = {
 }
 
 export default async function ProfDashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  let user = null
+  let prof = null
+  let studentsCount = 0
+  let lessonsCount = 0
+  let pendingHomework = 0
+  let recentSubmissions = null
 
-  const { data: prof } = await supabase
-    .from('professors')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    if (!user) redirect('/auth/login')
 
-  // Fetch stats
-  const { count: studentsCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
-  const { count: lessonsCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
-  const { count: pendingHomework } = await supabase.from('submissions').select('id, homework!inner(prof_id)').eq('homework.prof_id', user.id)
-  
-  // Recent activity (e.g. latest submissions)
-  const { data: recentSubmissions } = await supabase
-    .from('submissions')
-    .select('id, submitted_at, students(full_name), homework!inner(title)')
-    .eq('homework.prof_id', user.id)
-    .order('submitted_at', { ascending: false })
-    .limit(5)
+    const { data: profData } = await supabase
+      .from('professors')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    prof = profData
+
+    const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
+    studentsCount = sCount || 0
+
+    const { count: lCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
+    lessonsCount = lCount || 0
+
+    const { count: pCount } = await supabase.from('submissions').select('id, homework!inner(prof_id)').eq('homework.prof_id', user.id)
+    pendingHomework = pCount || 0
+    
+    const { data: recent } = await supabase
+      .from('submissions')
+      .select('id, submitted_at, students(full_name), homework!inner(title)')
+      .eq('homework.prof_id', user.id)
+      .order('submitted_at', { ascending: false })
+      .limit(5)
+    recentSubmissions = recent
+  } catch (error) {
+    console.error('Supabase error in prof dashboard:', error)
+    if (!user) {
+      return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+    }
+  }
 
   return (
     <div className="page-container max-w-6xl mx-auto">

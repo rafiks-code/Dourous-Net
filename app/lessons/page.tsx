@@ -11,26 +11,35 @@ export const metadata = {
 }
 
 export default async function LessonsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  let user = null
+  let student = null
+  let lessons = null
 
-  // Fetch student info
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    if (!user) redirect('/auth/login')
 
-  // Fetch all lessons (ideally filtered by student's level/filiere, but table just has prof_id)
-  // Let's fetch lessons and join with professors to get module name
-  const { data: lessons } = await supabase
-    .from('lessons')
-    .select(`
-      id, title, content, created_at,
-      professors ( full_name, subject )
-    `)
-    .order('created_at', { ascending: false })
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    student = studentData
+
+    const { data: lessonsData } = await supabase
+      .from('lessons')
+      .select(`
+        id, title, content, created_at,
+        professors ( full_name, subject )
+      `)
+      .order('created_at', { ascending: false })
+    lessons = lessonsData
+  } catch (error) {
+    console.error('Supabase error in lessons:', error)
+    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+  }
 
   const lessonList = lessons ?? []
 

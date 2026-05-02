@@ -12,24 +12,36 @@ export const metadata = {
 }
 
 export default async function HomeworkPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
+  let user = null
+  let student = null
+  let homeworks = null
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+    if (!user) redirect('/auth/login')
 
-  const { data: homeworks } = await supabase
-    .from('homework')
-    .select(`
-      id, title, description, due_date, created_at,
-      professors ( full_name, subject ),
-      submissions ( id, submitted_at, content )
-    `)
-    .order('due_date', { ascending: true })
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    student = studentData
+
+    const { data: homeworksData } = await supabase
+      .from('homework')
+      .select(`
+        id, title, description, due_date, created_at,
+        professors ( full_name, subject ),
+        submissions ( id, submitted_at, content )
+      `)
+      .order('due_date', { ascending: true })
+    homeworks = homeworksData
+  } catch (error) {
+    console.error('Supabase error in homework:', error)
+    if (!user) return <div className="p-8 text-center text-white">Erreur de connexion au serveur.</div>
+  }
 
   // Submissions might return an array, filter those that belong to this student
   const homeworkList = homeworks?.map(hw => {

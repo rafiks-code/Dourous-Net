@@ -26,32 +26,36 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
+  let user = null
   let userName: string | null = null
   let userRole: 'student' | 'professor' | null = null
-  
-  if (user) {
-    userRole = user.user_metadata?.role || 'student'
-    
-    if (userRole === 'professor') {
-      const { data: prof } = await supabase
-        .from('professors')
-        .select('full_name')
-        .eq('id', user.id)
-        .single()
-      userName = prof?.full_name ?? null
-    } else {
-      const { data: student } = await supabase
-        .from('students')
-        .select('full_name')
-        .eq('id', user.id)
-        .single()
-      userName = student?.full_name ?? null
+
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase.auth.getUser()
+    user = data?.user
+
+    if (user) {
+      userRole = user.user_metadata?.role || 'student'
+      
+      if (userRole === 'professor') {
+        const { data: prof } = await supabase
+          .from('professors')
+          .select('full_name')
+          .eq('id', user.id)
+          .single()
+        userName = prof?.full_name ?? null
+      } else {
+        const { data: student } = await supabase
+          .from('students')
+          .select('full_name')
+          .eq('id', user.id)
+          .single()
+        userName = student?.full_name ?? null
+      }
     }
+  } catch (error) {
+    console.error('Supabase error in layout:', error)
   }
 
   return (
