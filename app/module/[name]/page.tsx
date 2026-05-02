@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { getFromStorage, formatDate } from '@/lib/utils'
 import { STORAGE_KEYS, MODULE_ICONS, MODULE_ARABIC, FILIERE_ARABIC, type Level, type Filiere } from '@/lib/constants'
+import { useLanguage } from '@/lib/language-context'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -43,7 +44,8 @@ export default function ModulePage() {
   const moduleName = decodeURIComponent(params.name as string)
   const icon = MODULE_ICONS[moduleName] ?? '📘'
 
-  const [lang, setLang] = useState<'fr' | 'ar'>('fr')
+  const { language, t } = useLanguage()
+  const displayName = language === 'ar' ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName
   const [courses, setCourses] = useState<Course[]>([])
   const [homework, setHomework] = useState<Homework[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
@@ -55,7 +57,6 @@ export default function ModulePage() {
   const [level, setLevel] = useState<Level | null>(null)
   const [filiere, setFiliere] = useState<Filiere | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const isAr = lang === 'ar'
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -92,10 +93,8 @@ export default function ModulePage() {
   }, [moduleName, router])
 
   useEffect(() => {
-    const storedLang = getFromStorage(STORAGE_KEYS.LANGUAGE) as 'fr' | 'ar'
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL) as Level
     const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
-    if (storedLang) setLang(storedLang)
     if (storedLevel) setLevel(storedLevel)
     if (storedFiliere) setFiliere(storedFiliere)
     loadData()
@@ -105,11 +104,11 @@ export default function ModulePage() {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     if (file.type !== 'application/pdf') {
-      setUploadMsg(isAr ? 'الرجاء رفع ملف PDF فقط' : 'Veuillez uploader un fichier PDF uniquement.')
+      setUploadMsg(language === 'ar' ? 'الرجاء رفع ملف PDF فقط' : 'Veuillez uploader un fichier PDF uniquement.')
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      setUploadMsg(isAr ? 'الملف أكبر من 10 ميغابايت' : 'Le fichier dépasse 10 Mo.')
+      setUploadMsg(language === 'ar' ? 'الملف أكبر من 10 ميغابايت' : 'Le fichier dépasse 10 Mo.')
       return
     }
 
@@ -157,7 +156,7 @@ export default function ModulePage() {
     if (sessionError) {
       setUploadMsg(`Erreur d'enregistrement: ${sessionError.message}`)
     } else {
-      setUploadMsg(isAr ? '✅ تم رفع الملف بنجاح!' : '✅ Devoir soumis avec succès!')
+      setUploadMsg(language === 'ar' ? '✅ تم رفع الملف بنجاح!' : '✅ Devoir soumis avec succès!')
       await loadData()
     }
 
@@ -174,7 +173,7 @@ export default function ModulePage() {
   }
 
   return (
-    <div className={`page-container max-w-4xl mx-auto ${isAr ? 'rtl' : ''}`} dir={isAr ? 'rtl' : 'ltr'}>
+    <div className={`page-container max-w-4xl mx-auto ${language === 'ar' ? 'rtl' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-900/15 rounded-full blur-3xl" />
       </div>
@@ -182,8 +181,8 @@ export default function ModulePage() {
       <div className="relative z-10">
         {/* Back */}
         <Link href="/modules" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-8 transition-colors">
-          <ArrowLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
-          {isAr ? 'العودة إلى المواد' : 'Retour aux modules'}
+          <ArrowLeft className={`w-4 h-4 ${language === 'ar' ? 'rotate-180' : ''}`} />
+          {language === 'ar' ? 'العودة إلى الوحدات' : 'Retour aux modules'}
         </Link>
 
         {/* Module header */}
@@ -196,21 +195,21 @@ export default function ModulePage() {
           {level && filiere && <span className="text-white/30">·</span>}
           {filiere && (
             <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium">
-              {isAr ? FILIERE_ARABIC[filiere] || filiere : filiere}
+              {language === 'ar' ? FILIERE_ARABIC[filiere] || filiere : filiere}
             </span>
           )}
         </div>
         
-        <div className={`flex items-center gap-4 mb-10 ${isAr ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex items-center gap-4 mb-10 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-500/20 flex items-center justify-center text-3xl border border-white/10 flex-shrink-0">
             {icon}
           </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-black gradient-text">
-              {isAr ? MODULE_ARABIC[moduleName] || moduleName : moduleName}
+              {displayName}
             </h1>
             <p className="text-white/50 text-sm mt-1">
-              {courses.length} {isAr ? 'درس' : 'cours'} · {homework.length} {isAr ? 'واجب' : 'devoirs'}
+              {courses.length} {language === 'ar' ? 'دروس' : 'cours'} · {homework.length} {language === 'ar' ? 'واجبات' : 'devoirs'}
             </p>
           </div>
         </div>
@@ -220,16 +219,16 @@ export default function ModulePage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Courses */}
             <section className="glass-card p-6">
-              <div className={`flex items-center gap-3 mb-5 ${isAr ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-3 mb-5 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <BookOpen className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-lg font-bold">{isAr ? 'الدروس' : 'Cours disponibles'}</h2>
+                <h2 className="text-lg font-bold">{language === 'ar' ? 'الدروس المتاحة' : 'Cours disponibles'}</h2>
                 <Badge variant="info" className="ml-auto">{courses.length}</Badge>
               </div>
 
               {courses.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{isAr ? 'لا توجد دروس بعد' : 'Aucun cours disponible'}</p>
+                  <p className="text-sm">{language === 'ar' ? 'لا توجد دروس متاحة' : 'Aucun cours disponible'}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -250,7 +249,7 @@ export default function ModulePage() {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Download className="w-3.5 h-3.5" />
-                        {isAr ? 'تحميل' : 'Télécharger'}
+                        {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
                       </a>
                     </div>
                   ))}
@@ -260,16 +259,16 @@ export default function ModulePage() {
 
             {/* Homework list */}
             <section className="glass-card p-6">
-              <div className={`flex items-center gap-3 mb-5 ${isAr ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-3 mb-5 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
                 <ClipboardList className="w-5 h-5 text-violet-400" />
-                <h2 className="text-lg font-bold">{isAr ? 'الواجبات' : 'Devoirs assignés'}</h2>
+                <h2 className="text-lg font-bold">{language === 'ar' ? 'الواجبات' : 'Devoirs'}</h2>
                 <Badge variant="warning" className="ml-auto">{homework.length}</Badge>
               </div>
 
               {homework.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{isAr ? 'لا توجد واجبات' : 'Aucun devoir assigné'}</p>
+                  <p className="text-sm">{language === 'ar' ? 'لا توجد واجبات' : 'Aucun devoir'}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -282,7 +281,7 @@ export default function ModulePage() {
                         <p className="text-sm font-medium text-white truncate">{hw.title}</p>
                         <p className="text-xs text-amber-400/80 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {isAr ? 'الموعد:' : 'Rendu le'} {formatDate(hw.due_date)}
+                          {language === 'ar' ? 'الموعد:' : 'Rendu le'} {formatDate(hw.due_date)}
                         </p>
                       </div>
                       <a
@@ -292,7 +291,7 @@ export default function ModulePage() {
                         className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 font-medium px-3 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 transition-all flex-shrink-0"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        PDF
+                        {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
                       </a>
                     </div>
                   ))}
@@ -307,7 +306,7 @@ export default function ModulePage() {
             <section className="glass-card p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-400" />
-                {isAr ? 'رفع واجب' : 'Soumettre un devoir'}
+                {language === 'ar' ? 'رفع واجب' : 'Soumettre un devoir'}
               </h2>
 
               <div
@@ -316,7 +315,7 @@ export default function ModulePage() {
               >
                 <Upload className="w-8 h-8 mx-auto mb-2 text-white/20 group-hover:text-indigo-400 transition-colors" />
                 <p className="text-sm text-white/50 group-hover:text-white/70">
-                  {isAr ? 'انقر لاختيار ملف PDF' : 'Cliquer pour choisir un PDF'}
+                  {language === 'ar' ? 'انقر لاختيار ملف PDF' : 'Cliquer pour choisir un PDF'}
                 </p>
                 <p className="text-xs text-white/30 mt-1">Max 10 Mo</p>
               </div>
@@ -333,7 +332,7 @@ export default function ModulePage() {
               {uploading && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-xs text-white/60">
-                    <span>{isAr ? 'جارٍ الرفع...' : 'Upload en cours...'}</span>
+                    <span>{language === 'ar' ? 'جارٍ الرفع...' : 'Upload en cours...'}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} />
@@ -351,11 +350,11 @@ export default function ModulePage() {
             {/* My submissions */}
             <section className="glass-card p-6">
               <h2 className="text-base font-bold mb-4 text-white/80">
-                {isAr ? 'تسليماتي' : 'Mes soumissions'}
+                {language === 'ar' ? 'تسليماتي' : 'Mes soumissions'}
               </h2>
               {sessions.length === 0 ? (
                 <p className="text-xs text-white/30 text-center py-4">
-                  {isAr ? 'لم ترفع أي واجب بعد' : 'Aucune soumission'}
+                  {language === 'ar' ? 'لم ترفع أي واجب بعد' : 'Aucune soumission'}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -374,7 +373,7 @@ export default function ModulePage() {
                         <a href={s.file_url} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mt-1">
                           <FileText className="w-3 h-3" />
-                          {isAr ? 'عرض الملف' : 'Voir le fichier'}
+                          {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
                         </a>
                       )}
                     </div>
