@@ -9,6 +9,7 @@ ALTER TABLE homework ADD COLUMN IF NOT EXISTS level text;
 ALTER TABLE homework ADD COLUMN IF NOT EXISTS filiere text;
 
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS file_url text;
+ALTER TABLE submissions ADD COLUMN IF NOT EXISTS correction_url text;
 ALTER TABLE submissions ADD COLUMN IF NOT EXISTS status text 
   DEFAULT 'en attente';
 
@@ -101,3 +102,27 @@ CREATE POLICY "Users manage own messages"
   ON messages FOR ALL
   USING (auth.uid() = sender_id OR auth.uid() = receiver_id)
   WITH CHECK (auth.uid() = sender_id);
+
+-- Allow professors to insert lessons
+drop policy if exists "Professors can insert lessons" on lessons;
+create policy "Professors can insert lessons"
+on lessons for insert
+with check (auth.uid() = prof_id);
+
+-- Allow professors to insert homework  
+drop policy if exists "Professors can insert homework" on homework;
+create policy "Professors can insert homework"
+on homework for insert
+with check (auth.uid() = prof_id);
+
+-- Allow professors to select their own lessons
+drop policy if exists "Professors see own lessons" on lessons;
+create policy "Professors see own lessons"
+on lessons for select
+using (auth.uid() = prof_id);
+
+-- Allow professors to select their own homework
+drop policy if exists "Professors see own homework" on homework;
+create policy "Professors see own homework"
+on homework for select
+using (auth.uid() = prof_id);

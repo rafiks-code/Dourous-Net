@@ -31,7 +31,7 @@ export default function HomeworkPage() {
         .select(`
           id, title, description, due_date, created_at,
           professors ( full_name, subject ),
-          submissions ( id, status, submitted_at, file_url, content, student_id )
+          submissions ( id, status, submitted_at, file_url, content, student_id, correction_url )
         `)
         .order('due_date', { ascending: true })
 
@@ -105,6 +105,16 @@ export default function HomeworkPage() {
                     {hw.description}
                   </p>
 
+                  {hw.file_url && (
+                    <div className="mb-4">
+                      <a href={hw.file_url} target="_blank" rel="noopener noreferrer"
+                         className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-colors">
+                        <FileText className="w-4 h-4" />
+                        {language === 'ar' ? 'فتح الواجب' : 'Voir le devoir'}
+                      </a>
+                    </div>
+                  )}
+
                   <div className="mt-auto space-y-4">
                     <div className="flex items-center gap-4 text-xs text-white/40 bg-white/5 rounded-lg p-3">
                       <div className="flex items-center gap-1.5">
@@ -122,11 +132,24 @@ export default function HomeworkPage() {
                           <p className="text-sm font-medium text-emerald-400">{t('homeworkSubmitted')}</p>
                           <p className="text-xs text-emerald-400/60">{t('submittedOn')} {formatDate(hw.submission.submitted_at)}</p>
                         </div>
-                        <a href={hw.submission.file_url || hw.submission.content} target="_blank" rel="noopener noreferrer">
-                          <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
-                            {t('viewCopy')}
-                          </Button>
-                        </a>
+                        <div className="flex gap-2">
+                          <a href={hw.submission.file_url || hw.submission.content} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
+                              {t('viewCopy')}
+                            </Button>
+                          </a>
+                          {hw.submission.status === 'corrigé' && hw.submission.correction_url && (
+                            <a 
+                              href={hw.submission.correction_url}
+                              target="_blank"
+                              rel="noopener noreferrer" 
+                              className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm transition-colors"
+                            >
+                              <FileText className="w-4 h-4" />
+                              {language === 'ar' ? 'عرض التصحيح' : 'Voir la correction'}
+                            </a>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <Link href={`/homework/${hw.id}/submit`}>

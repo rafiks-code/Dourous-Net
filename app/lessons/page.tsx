@@ -121,13 +121,14 @@ export default function LessonsPage() {
                   {t('professor')} {lesson.professors?.full_name}
                 </p>
 
-                <div className="flex items-center justify-between pt-4 border-t border-white/10 mt-auto">
-                  <a href={lesson.file_url || lesson.content} target="_blank" rel="noopener noreferrer" className="w-full">
-                    <Button variant="secondary" className="w-full gap-2">
+                <div className="flex flex-col gap-2 pt-4 border-t border-white/10 mt-auto">
+                  {(lesson.file_url || lesson.content) && (
+                    <a href={lesson.file_url || lesson.content} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-lg text-white text-sm transition-colors w-full">
                       <FileText className="w-4 h-4" />
-                      {t('openDocument')}
-                    </Button>
-                  </a>
+                      {language === 'ar' ? 'فتح الدرس' : 'Ouvrir le cours'}
+                    </a>
+                  )}
                 </div>
               </div>
             ))}

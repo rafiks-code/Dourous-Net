@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLanguage } from '@/lib/language-context'
 import { LEVELS, FILIERES_BY_LEVEL, type Level, type Filiere, MODULE_ICONS, FILIERE_ARABIC } from '@/lib/constants'
+import PDFUpload from '@/components/PDFUpload'
 
 export default function ProfLessonsPage() {
   const supabase = createClient()
@@ -16,6 +17,7 @@ export default function ProfLessonsPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState('')
   
   const [form, setForm] = useState({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
 
@@ -45,15 +47,22 @@ export default function ProfLessonsPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    await supabase.from('lessons').insert({
+    const { error: insertError } = await supabase.from('lessons').insert({
       title: form.title,
-      content: form.description,
+      content: form.description || '',
       subject: form.subject,
       file_url: form.pdfUrl,
       prof_id: user.id,
       level: form.level || null,
       filiere: form.filiere || null,
-    })
+    }).select()
+
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      setError('Erreur sauvegarde: ' + insertError.message)
+      setSubmitting(false)
+      return
+    }
 
     setForm({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
     setShowForm(false)
@@ -86,6 +95,13 @@ export default function ProfLessonsPage() {
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-emerald-500/20 border">
           <h2 className="text-xl font-bold mb-4">{t('newLesson')}</h2>
+          
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>{t('lessonTitle')}</Label>
@@ -129,13 +145,16 @@ export default function ProfLessonsPage() {
             </div>
             <div className="space-y-2">
               <Label>{t('lessonPdf')}</Label>
-              <Input 
-                type="url"
-                value={form.pdfUrl} 
-                onChange={e => setForm({...form, pdfUrl: e.target.value})} 
-                placeholder="https://..."
-                required
+              <PDFUpload 
+                bucket="lessons" 
+                onUpload={(url) => setForm({...form, pdfUrl: url})}
+                language={language}
               />
+              {form.pdfUrl && (
+                <p className="text-green-400 text-sm mt-1">
+                  ✅ {language === 'ar' ? 'تم رفع الملف بنجاح' : 'Fichier téléchargé avec succès'}
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
 import { MODULE_ICONS } from '@/lib/constants'
+import PDFUpload from '@/components/PDFUpload'
 
 export default function ProfHomeworkPage() {
   const supabase = createClient()
@@ -17,8 +18,9 @@ export default function ProfHomeworkPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [error, setError] = useState('')
   
-  const [form, setForm] = useState({ title: '', description: '', due_date: '', subject: '' })
+  const [form, setForm] = useState({ title: '', description: '', due_date: '', subject: '', fileUrl: '' })
 
   useEffect(() => {
     loadHomework()
@@ -46,15 +48,23 @@ export default function ProfHomeworkPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    await supabase.from('homework').insert({
+    const { error: insertError } = await supabase.from('homework').insert({
       title: form.title,
-      description: form.description,
+      description: form.description || '',
       due_date: form.due_date,
       subject: form.subject,
+      file_url: form.fileUrl,
       prof_id: user.id
-    })
+    }).select()
 
-    setForm({ title: '', description: '', due_date: '', subject: '' })
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      setError('Erreur sauvegarde: ' + insertError.message)
+      setSubmitting(false)
+      return
+    }
+
+    setForm({ title: '', description: '', due_date: '', subject: '', fileUrl: '' })
     setShowForm(false)
     await loadHomework()
     setSubmitting(false)
@@ -85,6 +95,13 @@ export default function ProfHomeworkPage() {
       {showForm && (
         <div className="glass-card p-6 mb-8 animate-scale-in border-blue-500/20 border">
           <h2 className="text-xl font-bold mb-4">{t('newHomework')}</h2>
+          
+          {error && (
+            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              {error}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>{t('homeworkFormTitle')}</Label>
@@ -121,6 +138,19 @@ export default function ProfHomeworkPage() {
                 required
                 className="w-full sm:w-auto"
               />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'ar' ? 'ملف الواجب (PDF)' : 'Fichier du devoir (PDF)'}</Label>
+              <PDFUpload 
+                bucket="homework" 
+                onUpload={(url) => setForm({...form, fileUrl: url})}
+                language={language}
+              />
+              {form.fileUrl && (
+                <p className="text-green-400 text-sm mt-1">
+                  ✅ {language === 'ar' ? 'تم رفع الملف بنجاح' : 'Fichier téléchargé avec succès'}
+                </p>
+              )}
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>

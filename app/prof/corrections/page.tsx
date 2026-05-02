@@ -3,27 +3,27 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { CheckCircle2, FileText, Loader2, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
+import PDFUpload from '@/components/PDFUpload'
 
 export default function ProfCorrectionsPage() {
   const supabase = createClient()
   const { t, language } = useLanguage()
   const [submissions, setSubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedSub, setSelectedSub] = useState<any>(null)
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
   
-  const [form, setForm] = useState({ grade: '', comment: '' })
+  const [grade, setGrade] = useState('')
+  const [comment, setComment] = useState('')
+  const [correctionUrl, setCorrectionUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    loadSubmissions()
+    fetchSubmissions()
   }, [])
 
-  async function loadSubmissions() {
+  async function fetchSubmissions() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -43,39 +43,67 @@ export default function ProfCorrectionsPage() {
     setLoading(false)
   }
 
-  const handleCorrect = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedSub) return
+  const saveCorrection = async () => {
+    if (!selectedSubmission || !grade) {
+      alert(language === 'ar' ? 'أدخل الدرجة' : 'Veuillez entrer une note')
+      return
+    }
     setSubmitting(true)
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: prof } = await supabase.from('professors').select('subject').eq('id', user?.id).single()
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Update submission
+      const { error: subError } = await supabase
+        .from('submissions')
+        .update({ 
+          status: 'corrigé',
+          correction_url: correctionUrl || null
+        })
+        .eq('id', selectedSubmission.id)
 
-    // Add to grades table
-    await supabase.from('grades').insert({
-      student_id: selectedSub.student_id,
-      prof_id: user?.id,
-      subject: prof?.subject || 'Devoir',
-      grade: form.grade,
-      comment: form.comment
-    })
+      if (subError) throw subError
 
-    // Update submission to corrected
-    await supabase.from('submissions')
-      .update({ status: 'corrigé' })
-      .eq('id', selectedSub.id)
+      // Add grade
+      const { error: gradeError } = await supabase
+        .from('grades')
+        .insert({
+          student_id: selectedSubmission.student_id,
+          prof_id: user?.id,
+          subject: selectedSubmission.homework?.subject || '',
+          grade: parseFloat(grade),
+          comment: comment || '',
+        })
 
-    // Send notification to student
-    await supabase.from('notifications').insert({
-      user_id: selectedSub.student_id,
-      message: `Votre devoir "${selectedSub.homework?.title}" a été corrigé. Note: ${form.grade}/20`,
-      type: 'grade',
-    })
+      if (gradeError) throw gradeError
 
-    setForm({ grade: '', comment: '' })
-    setSelectedSub(null)
-    await loadSubmissions()
-    setSubmitting(false)
+      // Send notification
+      await supabase.from('notifications').insert({
+        user_id: selectedSubmission.student_id,
+        message: language === 'ar' 
+          ? `تم تصحيح واجبك "${selectedSubmission.homework?.title}". الدرجة: ${grade}/20`
+          : `Votre devoir "${selectedSubmission.homework?.title}" a été corrigé. Note: ${grade}/20`,
+        type: 'grade',
+        is_read: false,
+      })
+
+      // Refresh list
+      await fetchSubmissions()
+      
+      // Reset
+      setSelectedSubmission(null)
+      setGrade('')
+      setComment('')
+      setCorrectionUrl('')
+
+      alert(language === 'ar' ? 'تم الحفظ بنجاح!' : 'Correction enregistrée avec succès!')
+
+    } catch (error: any) {
+      console.error('Error:', error)
+      alert('Erreur: ' + error.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -105,9 +133,9 @@ export default function ProfCorrectionsPage() {
               {submissions.map(sub => (
                 <button
                   key={sub.id}
-                  onClick={() => setSelectedSub(sub)}
+                  onClick={() => setSelectedSubmission(sub)}
                   className={`w-full text-left p-4 rounded-xl border transition-all ${
-                    selectedSub?.id === sub.id 
+                    selectedSubmission?.id === sub.id 
                       ? 'bg-emerald-500/20 border-emerald-500 text-white' 
                       : 'bg-white/5 border-white/10 hover:bg-white/10 text-white/70'
                   }`}
@@ -124,49 +152,91 @@ export default function ProfCorrectionsPage() {
           </div>
 
           <div className="lg:col-span-2">
-            {selectedSub ? (
+            {selectedSubmission ? (
               <div className="glass-card p-6 border border-emerald-500/20">
                 <div className="flex items-center justify-between mb-6 pb-6 border-b border-white/10">
                   <div>
-                    <h2 className="text-xl font-bold">{selectedSub.students?.full_name}</h2>
-                    <p className="text-sm text-white/50">{selectedSub.students?.level} • {selectedSub.students?.filiere}</p>
+                    <h2 className="text-xl font-bold">{selectedSubmission.students?.full_name}</h2>
+                    <p className="text-sm text-white/50">{selectedSubmission.students?.level} • {selectedSubmission.students?.filiere}</p>
                   </div>
-                  <a href={selectedSub.file_url || selectedSub.content} target="_blank" rel="noreferrer">
-                    <Button variant="outline" className="gap-2 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10">
-                      <FileText className="w-4 h-4" /> {t('viewCopy')}
-                    </Button>
-                  </a>
                 </div>
 
-                <form onSubmit={handleCorrect} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>{t('grade')} / 20</Label>
-                      <Input 
-                        type="number" 
-                        min="0" max="20" step="0.25"
-                        value={form.grade} 
-                        onChange={e => setForm({...form, grade: e.target.value})} 
-                        required
-                        className="text-lg font-bold"
-                      />
-                    </div>
+                {/* View student submission */}
+                {(selectedSubmission?.file_url || selectedSubmission?.content) && (
+                  <div className="mb-4">
+                    <p className="text-sm text-indigo-300 mb-2">
+                      {language === 'ar' ? 'عمل الطالب:' : 'Travail de l élève:'}
+                    </p>
+                    <a 
+                      href={selectedSubmission.file_url || selectedSubmission.content} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm w-fit transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      {language === 'ar' ? 'فتح ملف الطالب' : 'Ouvrir le PDF du élève'}
+                    </a>
                   </div>
-                  <div className="space-y-2">
-                    <Label>{t('comment')}</Label>
-                    <textarea 
-                      className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[100px]"
-                      value={form.comment} 
-                      onChange={e => setForm({...form, comment: e.target.value})} 
-                      placeholder={t('correctionCommentPlaceholder')}
-                    />
-                  </div>
-                  <div className="flex justify-end pt-2">
-                    <Button type="submit" variant="gradient" className="from-emerald-500 to-teal-500 shadow-emerald-500/25" disabled={submitting}>
-                      {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('correct')}
-                    </Button>
-                  </div>
-                </form>
+                )}
+
+                {/* Upload correction PDF */}
+                <div className="mb-4">
+                  <p className="text-sm text-indigo-300 mb-2">
+                    {language === 'ar' ? 'رفع ملف التصحيح (اختياري)' : 'Télécharger le corrigé PDF (optionnel)'}
+                  </p>
+                  <PDFUpload 
+                    bucket="corrections"
+                    onUpload={(url) => setCorrectionUrl(url)}
+                    language={language}
+                  />
+                  {correctionUrl && (
+                    <p className="text-green-400 text-sm mt-2 flex items-center gap-1">
+                      ✅ {language === 'ar' ? 'تم رفع التصحيح' : 'Corrigé téléchargé'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Grade input */}
+                <div className="mb-4">
+                  <label className="text-sm text-indigo-300 mb-2 block">
+                    {language === 'ar' ? 'الدرجة / 20' : 'Note / 20'}
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="20"
+                    step="0.25"
+                    value={grade}
+                    onChange={(e) => setGrade(e.target.value)}
+                    placeholder="0 - 20"
+                    className="w-full px-4 py-2 bg-indigo-900/30 border border-indigo-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Comment */}
+                <div className="mb-4">
+                  <label className="text-sm text-indigo-300 mb-2 block">
+                    {language === 'ar' ? 'تعليق' : 'Commentaire'}
+                  </label>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    placeholder={language === 'ar' ? 'تعليق...' : 'Commentaire...'}
+                    rows={3}
+                    className="w-full px-4 py-2 bg-indigo-900/30 border border-indigo-700 rounded-lg text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                
+                <div className="flex justify-end pt-2">
+                  <button 
+                    onClick={saveCorrection}
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors shadow-lg shadow-emerald-500/20"
+                  >
+                    {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    {language === 'ar' ? 'تصحيح' : 'Corriger'}
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="h-full min-h-[300px] glass-card flex flex-col items-center justify-center text-white/30 p-8 text-center">

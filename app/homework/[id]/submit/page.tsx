@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/language-context'
+import PDFUpload from '@/components/PDFUpload'
 
 export default function SubmitHomeworkPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -75,23 +76,18 @@ export default function SubmitHomeworkPage({ params }: { params: { id: string } 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-3">
-            <Label>{t('pdfLinkLabel')}</Label>
+            <Label>{language === 'ar' ? 'ملف الواجب (PDF)' : 'Fichier du devoir (PDF)'}</Label>
             <div className="flex flex-col gap-2">
-              <div className="relative">
-                <FileText className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 ${language === 'ar' ? 'right-3' : 'left-3'}`} />
-                <Input 
-                  type="url" 
-                  placeholder="https://drive.google.com/file/d/..." 
-                  className={language === 'ar' ? 'pr-10 text-left' : 'pl-10'} 
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  required 
-                  dir="ltr"
-                />
-              </div>
-              <p className="text-xs text-white/40">
-                {t('pdfLinkDesc')}
-              </p>
+              <PDFUpload 
+                bucket="submissions" 
+                onUpload={(url) => setUrl(url)}
+                language={language}
+              />
+              {url && (
+                <p className="text-green-400 text-sm mt-1">
+                  ✅ {language === 'ar' ? 'تم رفع الملف بنجاح' : 'Fichier téléchargé avec succès'}
+                </p>
+              )}
             </div>
           </div>
 
