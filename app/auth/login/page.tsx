@@ -8,9 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { BookOpen, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { useLanguage } from '@/lib/language-context'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { language } = useLanguage()
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect') ?? '/dashboard'
 
@@ -45,7 +47,7 @@ export default function LoginPage() {
     if (signInError) {
       setError(
         signInError.message.includes('Invalid login credentials')
-          ? 'Email ou mot de passe incorrect.'
+          ? (language === 'ar' ? 'البريد أو كلمة المرور غير صحيحة' : 'Email ou mot de passe incorrect')
           : signInError.message
       )
       setLoading(false)
@@ -62,7 +64,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
+    <div className={`min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 ${language === 'ar' ? 'rtl' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-700/15 rounded-full blur-3xl" />
@@ -75,8 +77,8 @@ export default function LoginPage() {
           <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 items-center justify-center shadow-xl shadow-indigo-500/30 mb-4">
             <BookOpen className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-black gradient-text">Connexion</h1>
-          <p className="text-white/50 mt-2 text-sm">Accédez à votre espace étudiant</p>
+          <h1 className="text-3xl font-black gradient-text">{language === 'ar' ? 'تسجيل الدخول' : 'Connexion'}</h1>
+          <p className="text-white/50 mt-2 text-sm">{language === 'ar' ? 'الوصول إلى مساحتك' : 'Accédez à votre espace étudiant'}</p>
         </div>
 
         {/* Card */}
@@ -84,7 +86,7 @@ export default function LoginPage() {
           <form onSubmit={handleLogin} className="space-y-5">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Adresse email</Label>
+              <Label htmlFor="email">{language === 'ar' ? 'البريد الإلكتروني' : 'Adresse email'}</Label>
               <Input
                 id="email"
                 type="email"
@@ -99,9 +101,9 @@ export default function LoginPage() {
             {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">{language === 'ar' ? 'كلمة المرور' : 'Mot de passe'}</Label>
                 <Link href="/auth/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                  Mot de passe oublié ?
+                  {language === 'ar' ? 'نسيت كلمة المرور؟' : 'Mot de passe oublié ?'}
                 </Link>
               </div>
               <div className="relative">
@@ -145,11 +147,11 @@ export default function LoginPage() {
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Connexion en cours...
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  {language === 'ar' ? 'جارٍ تسجيل الدخول...' : 'Connexion en cours...'}
                 </>
               ) : (
-                'Se connecter'
+                language === 'ar' ? 'تسجيل الدخول' : 'Se connecter'
               )}
             </Button>
           </form>
@@ -165,9 +167,9 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-sm text-white/50">
-            Pas encore de compte ?{' '}
+            {language === 'ar' ? 'ليس لديك حساب؟ ' : 'Pas encore de compte ? '}
             <Link href="/auth/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-              S&apos;inscrire gratuitement
+              {language === 'ar' ? 'إنشاء حساب' : "S'inscrire"}
             </Link>
           </p>
         </div>
