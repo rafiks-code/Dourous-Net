@@ -64,7 +64,7 @@ export default function RegisterPage() {
     
     if (data.user) {
       if (form.role === 'student') {
-        await supabase.from('students').insert({ 
+        await supabase.from('students').upsert({ 
           id: data.user.id, 
           email: form.email, 
           full_name: form.fullName, 
@@ -72,7 +72,7 @@ export default function RegisterPage() {
           filiere: form.filiere 
         })
       } else {
-        await supabase.from('professors').insert({ 
+        await supabase.from('professors').upsert({ 
           id: data.user.id, 
           email: form.email, 
           full_name: form.fullName, 

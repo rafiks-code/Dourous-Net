@@ -31,11 +31,12 @@ export default function ProfCorrectionsPage() {
     const { data } = await supabase
       .from('submissions')
       .select(`
-        id, content, submitted_at, homework_id, student_id,
+        id, content, file_url, submitted_at, homework_id, student_id,
         students ( full_name, level, filiere ),
-        homework!inner ( id, title, prof_id )
+        homework!inner ( id, title, prof_id, subject )
       `)
       .eq('homework.prof_id', user.id)
+      .eq('status', 'soumis')
       .order('submitted_at', { ascending: false })
 
     if (data) setSubmissions(data)
@@ -59,8 +60,17 @@ export default function ProfCorrectionsPage() {
       comment: form.comment
     })
 
-    // Delete submission or mark as corrected
-    await supabase.from('submissions').delete().eq('id', selectedSub.id)
+    // Update submission to corrected
+    await supabase.from('submissions')
+      .update({ status: 'corrigé' })
+      .eq('id', selectedSub.id)
+
+    // Send notification to student
+    await supabase.from('notifications').insert({
+      user_id: selectedSub.student_id,
+      message: `Votre devoir "${selectedSub.homework?.title}" a été corrigé. Note: ${form.grade}/20`,
+      type: 'grade',
+    })
 
     setForm({ grade: '', comment: '' })
     setSelectedSub(null)
@@ -121,7 +131,7 @@ export default function ProfCorrectionsPage() {
                     <h2 className="text-xl font-bold">{selectedSub.students?.full_name}</h2>
                     <p className="text-sm text-white/50">{selectedSub.students?.level} • {selectedSub.students?.filiere}</p>
                   </div>
-                  <a href={selectedSub.content} target="_blank" rel="noreferrer">
+                  <a href={selectedSub.file_url || selectedSub.content} target="_blank" rel="noreferrer">
                     <Button variant="outline" className="gap-2 text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10">
                       <FileText className="w-4 h-4" /> {t('viewCopy')}
                     </Button>

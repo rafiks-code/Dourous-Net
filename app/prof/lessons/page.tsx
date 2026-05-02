@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLanguage } from '@/lib/language-context'
+import { LEVELS, FILIERES_BY_LEVEL, type Level, type Filiere, MODULE_ICONS, FILIERE_ARABIC } from '@/lib/constants'
 
 export default function ProfLessonsPage() {
   const supabase = createClient()
@@ -16,7 +17,7 @@ export default function ProfLessonsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
   
-  const [form, setForm] = useState({ title: '', content: '' })
+  const [form, setForm] = useState({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
 
   useEffect(() => {
     loadLessons()
@@ -46,11 +47,15 @@ export default function ProfLessonsPage() {
 
     await supabase.from('lessons').insert({
       title: form.title,
-      content: form.content,
-      prof_id: user.id
+      content: form.description,
+      subject: form.subject,
+      file_url: form.pdfUrl,
+      prof_id: user.id,
+      level: form.level || null,
+      filiere: form.filiere || null,
     })
 
-    setForm({ title: '', content: '' })
+    setForm({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
     setShowForm(false)
     await loadLessons()
     setSubmitting(false)
@@ -91,12 +96,43 @@ export default function ProfLessonsPage() {
                 required
               />
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'المستوى' : 'Niveau'}</Label>
+                <select value={form.level} onChange={e => setForm({...form, level: e.target.value, filiere: ''})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                  <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'الكل' : 'Tous'}</option>
+                  {LEVELS.map(l => <option key={l} value={l} className="bg-[#0d0d25]">{l}</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>{language === 'ar' ? 'الشعبة' : 'Filière'}</Label>
+                <select value={form.filiere} onChange={e => setForm({...form, filiere: e.target.value})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled={!form.level}>
+                  <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'الكل' : 'Toutes'}</option>
+                  {form.level && FILIERES_BY_LEVEL[form.level as Level].map(f => <option key={f} value={f} className="bg-[#0d0d25]">{language === 'ar' ? (FILIERE_ARABIC[f as Filiere] || f) : f}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'ar' ? 'المادة' : 'Matière'}</Label>
+              <select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
+                <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'اختر المادة' : 'Sélectionner une matière'}</option>
+                {Object.keys(MODULE_ICONS).map(m => <option key={m} value={m} className="bg-[#0d0d25]">{m}</option>)}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'ar' ? 'الوصف' : 'Description'}</Label>
+              <textarea 
+                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px]"
+                value={form.description} 
+                onChange={e => setForm({...form, description: e.target.value})} 
+              />
+            </div>
             <div className="space-y-2">
               <Label>{t('lessonPdf')}</Label>
               <Input 
                 type="url"
-                value={form.content} 
-                onChange={e => setForm({...form, content: e.target.value})} 
+                value={form.pdfUrl} 
+                onChange={e => setForm({...form, pdfUrl: e.target.value})} 
                 placeholder="https://..."
                 required
               />
@@ -122,7 +158,8 @@ export default function ProfLessonsPage() {
           {lessons.map(lesson => (
             <div key={lesson.id} className="glass-card p-6 flex flex-col">
               <h3 className="text-lg font-bold text-white mb-2">{lesson.title}</h3>
-              <a href={lesson.content} target="_blank" rel="noreferrer" className="text-sm text-emerald-400 flex items-center gap-2 mb-4 hover:underline">
+              {lesson.level && <p className="text-xs text-white/50 mb-2">{lesson.level} {lesson.filiere}</p>}
+              <a href={lesson.file_url || lesson.content} target="_blank" rel="noreferrer" className="text-sm text-emerald-400 flex items-center gap-2 mb-4 hover:underline">
                 <FileText className="w-4 h-4" /> {t('openDocument')}
               </a>
               <div className="mt-auto pt-4 border-t border-white/10 flex justify-end">

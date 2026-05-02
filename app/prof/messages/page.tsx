@@ -47,7 +47,22 @@ export default function ProfMessagesPage() {
     }
 
     loadMessages()
-  }, [selectedStudent, currentUser])
+
+    const channel = supabase.channel('prof-messages')
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          setMessages(prev => {
+            if (prev.find(m => m.id === payload.new.id || (m.content === payload.new.content && m.sender_id === payload.new.sender_id))) return prev;
+            return [...prev, payload.new];
+          });
+        }
+      ).subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedStudent, currentUser, supabase])
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()

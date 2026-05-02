@@ -26,12 +26,16 @@ export default function LessonsPage() {
         return
       }
 
+      const { data: student } = await supabase
+        .from('students')
+        .select('level, filiere')
+        .eq('id', user.id)
+        .single()
+
       const { data: lessonsData } = await supabase
         .from('lessons')
-        .select(`
-          id, title, content, created_at,
-          professors ( full_name, subject )
-        `)
+        .select('*, professors(full_name)')
+        .or(`level.eq.${student?.level || ''},level.is.null`)
         .order('created_at', { ascending: false })
       
       setLessons(lessonsData || [])
@@ -43,7 +47,7 @@ export default function LessonsPage() {
 
   const filteredLessons = lessons.filter(l => 
     l.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    (l.professors?.subject || '').toLowerCase().includes(searchQuery.toLowerCase())
+    (l.subject || l.professors?.subject || '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   if (loading) {
@@ -101,7 +105,7 @@ export default function LessonsPage() {
                 <div className="flex items-start justify-between mb-4">
                   <Badge variant="info" className="gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5" />
-                    {lesson.professors?.subject ?? t('subject')}
+                    {lesson.subject ?? lesson.professors?.subject ?? t('subject')}
                   </Badge>
                   <div className="text-xs text-white/40 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
@@ -118,7 +122,7 @@ export default function LessonsPage() {
                 </p>
 
                 <div className="flex items-center justify-between pt-4 border-t border-white/10 mt-auto">
-                  <a href={lesson.content} target="_blank" rel="noopener noreferrer" className="w-full">
+                  <a href={lesson.file_url || lesson.content} target="_blank" rel="noopener noreferrer" className="w-full">
                     <Button variant="secondary" className="w-full gap-2">
                       <FileText className="w-4 h-4" />
                       {t('openDocument')}

@@ -31,7 +31,7 @@ export default function HomeworkPage() {
         .select(`
           id, title, description, due_date, created_at,
           professors ( full_name, subject ),
-          submissions ( id, submitted_at, content, student_id )
+          submissions ( id, status, submitted_at, file_url, content, student_id )
         `)
         .order('due_date', { ascending: true })
 
@@ -122,7 +122,7 @@ export default function HomeworkPage() {
                           <p className="text-sm font-medium text-emerald-400">{t('homeworkSubmitted')}</p>
                           <p className="text-xs text-emerald-400/60">{t('submittedOn')} {formatDate(hw.submission.submitted_at)}</p>
                         </div>
-                        <a href={hw.submission.content} target="_blank" rel="noopener noreferrer">
+                        <a href={hw.submission.file_url || hw.submission.content} target="_blank" rel="noopener noreferrer">
                           <Button variant="outline" size="sm" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20">
                             {t('viewCopy')}
                           </Button>

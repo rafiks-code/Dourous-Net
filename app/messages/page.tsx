@@ -47,7 +47,23 @@ export default function MessagesPage() {
     }
 
     loadMessages()
-  }, [selectedProf, currentUser])
+
+    const channel = supabase.channel('messages')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          setMessages(prev => {
+            // Avoid duplicate if sent by me (optimistic update)
+            if (prev.find(m => m.id === payload.new.id || (m.content === payload.new.content && m.sender_id === payload.new.sender_id))) return prev;
+            return [...prev, payload.new];
+          });
+        }
+      ).subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [selectedProf, currentUser, supabase])
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -39,7 +39,9 @@ export default function SubmitHomeworkPage({ params }: { params: { id: string } 
       await supabase.from('submissions').insert({
         homework_id: params.id,
         student_id: user.id,
-        content: url
+        file_url: url,
+        content: url, // Fallback for existing columns
+        status: 'soumis'
       })
     }
     

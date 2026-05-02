@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDate } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
+import { MODULE_ICONS } from '@/lib/constants'
 
 export default function ProfHomeworkPage() {
   const supabase = createClient()
@@ -17,7 +18,7 @@ export default function ProfHomeworkPage() {
   const [submitting, setSubmitting] = useState(false)
   const [showForm, setShowForm] = useState(false)
   
-  const [form, setForm] = useState({ title: '', description: '', due_date: '' })
+  const [form, setForm] = useState({ title: '', description: '', due_date: '', subject: '' })
 
   useEffect(() => {
     loadHomework()
@@ -49,10 +50,11 @@ export default function ProfHomeworkPage() {
       title: form.title,
       description: form.description,
       due_date: form.due_date,
+      subject: form.subject,
       prof_id: user.id
     })
 
-    setForm({ title: '', description: '', due_date: '' })
+    setForm({ title: '', description: '', due_date: '', subject: '' })
     setShowForm(false)
     await loadHomework()
     setSubmitting(false)
@@ -102,6 +104,13 @@ export default function ProfHomeworkPage() {
                 placeholder={t('homeworkDescPlaceholder')}
                 required
               />
+            </div>
+            <div className="space-y-2">
+              <Label>{language === 'ar' ? 'المادة' : 'Matière'}</Label>
+              <select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'اختر المادة' : 'Sélectionner une matière'}</option>
+                {Object.keys(MODULE_ICONS).map(m => <option key={m} value={m} className="bg-[#0d0d25]">{m}</option>)}
+              </select>
             </div>
             <div className="space-y-2">
               <Label>{t('dueDate')}</Label>

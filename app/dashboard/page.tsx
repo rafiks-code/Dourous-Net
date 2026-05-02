@@ -41,12 +41,12 @@ export default function DashboardPage() {
         .single()
       setStudent(studentData)
 
-      const { data: sessionsData } = await supabase
-        .from('sessions')
-        .select('*')
+      const { data: submissions } = await supabase
+        .from('submissions')
+        .select('*, homework(title, subject, due_date)')
         .eq('student_id', user.id)
-        .order('created_at', { ascending: false })
-      setSessions(sessionsData || [])
+        .order('submitted_at', { ascending: false })
+      setSessions(submissions || [])
       setLoading(false)
     }
 
@@ -191,15 +191,15 @@ export default function DashboardPage() {
                   <div key={session.id} className="grid grid-cols-12 gap-4 px-5 py-4 items-center hover:bg-white/3 transition-colors">
                     <div className="col-span-4 flex items-center gap-3 min-w-0">
                       <span className="text-lg flex-shrink-0">
-                        {MODULE_ICONS[session.module] ?? '📘'}
+                        {MODULE_ICONS[session.homework?.subject] ?? '📘'}
                       </span>
                       <span className="text-sm font-medium text-white truncate">
-                        {session.module}
+                        {session.homework?.title || session.module}
                       </span>
                     </div>
                     <div className="col-span-3 flex items-center gap-1.5 text-sm text-white/50">
                       <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span className="truncate">{formatDate(session.date)}</span>
+                      <span className="truncate">{formatDate(session.submitted_at || session.date)}</span>
                     </div>
                     <div className="col-span-2">
                       <Badge variant={statusVariant(session.status)} className="gap-1 text-xs">

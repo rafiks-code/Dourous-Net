@@ -35,7 +35,7 @@ export default function ProfDashboardPage() {
 
       const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
       const { count: lCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
-      const { count: pCount } = await supabase.from('submissions').select('id, homework!inner(prof_id)').eq('homework.prof_id', user.id)
+      const { count: pCount } = await supabase.from('submissions').select('id, homework!inner(prof_id)', { count: 'exact', head: true }).eq('homework.prof_id', user.id).eq('status', 'soumis')
       
       setStats({
         students: sCount || 0,
@@ -47,6 +47,7 @@ export default function ProfDashboardPage() {
         .from('submissions')
         .select('id, submitted_at, students(full_name), homework!inner(title)')
         .eq('homework.prof_id', user.id)
+        .eq('status', 'soumis')
         .order('submitted_at', { ascending: false })
         .limit(5)
       
