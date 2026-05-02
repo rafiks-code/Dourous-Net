@@ -2,8 +2,8 @@ export const LEVELS = ['1AS', '2AS', '3AS'] as const
 export type Level = typeof LEVELS[number]
 
 export const FILIERES = [
-  'TC Sciences',
-  'TC Lettres',
+  'Scientifique',
+  'Lettres',
   'Sciences Expérimentales',
   'Mathématiques',
   'Lettres et Philosophie',
@@ -14,29 +14,83 @@ export const FILIERES = [
 export type Filiere = typeof FILIERES[number]
 
 export const FILIERES_BY_LEVEL: Record<string, string[]> = {
-  '1AS': ['TC Sciences', 'TC Lettres'],
-  '2AS': ['Sciences Expérimentales', 'Mathématiques', 'Lettres et Philosophie', 'Langues Étrangères'],
-  '3AS': ['Sciences Expérimentales', 'Mathématiques', 'Technique Mathématique', 'Lettres et Philosophie', 'Langues Étrangères', 'Gestion et Économie']
+  '1AS': ['Scientifique', 'Lettres'],
+  '2AS': ['Sciences Expérimentales', 'Mathématiques', 
+          'Lettres et Philosophie', 'Langues Étrangères'],
+  '3AS': ['Sciences Expérimentales', 'Mathématiques', 
+          'Technique Mathématique', 'Lettres et Philosophie', 
+          'Langues Étrangères', 'Gestion et Économie']
 }
 
 export const MODULES_BY_LEVEL_FILIERE: Record<string, Record<string, string[]>> = {
   '1AS': {
-    'TC Sciences': ['Mathématiques', 'Sciences Physiques', 'Sciences Naturelles', 'Français', 'Arabe', 'Anglais', 'Histoire-Géographie', 'Éducation Islamique', 'Éducation Civique', 'Informatique', 'Éducation Physique'],
-    'TC Lettres': ['Langue Arabe', 'Langue Française', 'Langue Anglaise', 'Histoire-Géographie', 'Philosophie', 'Éducation Islamique', 'Éducation Civique', 'Mathématiques', 'Informatique', 'Éducation Physique']
+    'Scientifique': [
+      'Mathématiques', 'Sciences Physiques', 'Sciences Naturelles',
+      'Français', 'Arabe', 'Anglais', 'Histoire-Géographie',
+      'Éducation Islamique', 'Éducation Civique', 
+      'Informatique', 'Éducation Physique'
+    ],
+    'Lettres': [
+      'Langue Arabe', 'Langue Française', 'Langue Anglaise',
+      'Histoire-Géographie', 'Philosophie', 'Éducation Islamique',
+      'Éducation Civique', 'Mathématiques', 
+      'Informatique', 'Éducation Physique'
+    ]
   },
   '2AS': {
-    'Sciences Expérimentales': ['Mathématiques', 'Sciences Physiques', 'Sciences Naturelles', 'Français', 'Arabe', 'Anglais', 'Histoire-Géographie', 'Éducation Islamique', 'Éducation Physique'],
-    'Mathématiques': ['Mathématiques', 'Sciences Physiques', 'Informatique', 'Français', 'Arabe', 'Anglais', 'Histoire-Géographie', 'Éducation Islamique', 'Éducation Physique'],
-    'Lettres et Philosophie': ['Langue Arabe', 'Langue Française', 'Langue Anglaise', 'Philosophie', 'Histoire-Géographie', 'Éducation Islamique', 'Éducation Civique', 'Mathématiques', 'Éducation Physique'],
-    'Langues Étrangères': ['Langue Française', 'Langue Anglaise', 'Langue Arabe', 'Espagnol', 'Histoire-Géographie', 'Philosophie', 'Éducation Islamique', 'Mathématiques', 'Éducation Physique']
+    'Sciences Expérimentales': [
+      'Mathématiques', 'Sciences Physiques', 'Sciences Naturelles',
+      'Français', 'Arabe', 'Anglais', 'Histoire-Géographie',
+      'Éducation Islamique', 'Éducation Physique'
+    ],
+    'Mathématiques': [
+      'Mathématiques', 'Sciences Physiques', 'Informatique',
+      'Français', 'Arabe', 'Anglais', 'Histoire-Géographie',
+      'Éducation Islamique', 'Éducation Physique'
+    ],
+    'Lettres et Philosophie': [
+      'Langue Arabe', 'Langue Française', 'Langue Anglaise',
+      'Philosophie', 'Histoire-Géographie', 'Éducation Islamique',
+      'Éducation Civique', 'Mathématiques', 'Éducation Physique'
+    ],
+    'Langues Étrangères': [
+      'Langue Française', 'Langue Anglaise', 'Langue Arabe',
+      'Espagnol', 'Histoire-Géographie', 'Philosophie',
+      'Éducation Islamique', 'Mathématiques', 'Éducation Physique'
+    ]
   },
   '3AS': {
-    'Sciences Expérimentales': ['Mathématiques', 'Sciences Physiques', 'Sciences Naturelles', 'Français', 'Arabe', 'Anglais', 'Histoire-Géographie', 'Philosophie', 'Éducation Islamique', 'Éducation Physique'],
-    'Mathématiques': ['Mathématiques', 'Sciences Physiques', 'Informatique', 'Français', 'Arabe', 'Anglais', 'Philosophie', 'Éducation Islamique', 'Éducation Physique'],
-    'Technique Mathématique': ['Mathématiques', 'Sciences Physiques', 'Technologie', 'Dessin Technique', 'Français', 'Arabe', 'Anglais', 'Philosophie', 'Éducation Islamique', 'Éducation Physique'],
-    'Lettres et Philosophie': ['Langue Arabe', 'Langue Française', 'Langue Anglaise', 'Philosophie', 'Histoire-Géographie', 'Éducation Islamique', 'Mathématiques', 'Éducation Physique'],
-    'Langues Étrangères': ['Langue Française', 'Langue Anglaise', 'Langue Arabe', 'Espagnol', 'Philosophie', 'Histoire-Géographie', 'Éducation Islamique', 'Mathématiques', 'Éducation Physique'],
-    'Gestion et Économie': ['Mathématiques', 'Économie et Gestion', 'Droit', 'Histoire-Géographie', 'Français', 'Arabe', 'Anglais', 'Comptabilité', 'Philosophie', 'Éducation Islamique', 'Éducation Physique']
+    'Sciences Expérimentales': [
+      'Mathématiques', 'Sciences Physiques', 'Sciences Naturelles',
+      'Français', 'Arabe', 'Anglais', 'Histoire-Géographie',
+      'Philosophie', 'Éducation Islamique', 'Éducation Physique'
+    ],
+    'Mathématiques': [
+      'Mathématiques', 'Sciences Physiques', 'Informatique',
+      'Français', 'Arabe', 'Anglais', 'Philosophie',
+      'Éducation Islamique', 'Éducation Physique'
+    ],
+    'Technique Mathématique': [
+      'Mathématiques', 'Sciences Physiques', 'Technologie',
+      'Dessin Technique', 'Français', 'Arabe', 'Anglais',
+      'Philosophie', 'Éducation Islamique', 'Éducation Physique'
+    ],
+    'Lettres et Philosophie': [
+      'Langue Arabe', 'Langue Française', 'Langue Anglaise',
+      'Philosophie', 'Histoire-Géographie', 'Éducation Islamique',
+      'Mathématiques', 'Éducation Physique'
+    ],
+    'Langues Étrangères': [
+      'Langue Française', 'Langue Anglaise', 'Langue Arabe',
+      'Espagnol', 'Philosophie', 'Histoire-Géographie',
+      'Éducation Islamique', 'Mathématiques', 'Éducation Physique'
+    ],
+    'Gestion et Économie': [
+      'Mathématiques', 'Économie et Gestion', 'Droit',
+      'Histoire-Géographie', 'Français', 'Arabe', 'Anglais',
+      'Comptabilité', 'Philosophie', 'Éducation Islamique',
+      'Éducation Physique'
+    ]
   }
 }
 
@@ -89,8 +143,8 @@ export const MODULE_ARABIC: Record<string, string> = {
 }
 
 export const FILIERE_ARABIC: Record<string, string> = {
-  'TC Sciences': 'جذع مشترك علوم',
-  'TC Lettres': 'جذع مشترك آداب',
+  'Scientifique': 'علوم',
+  'Lettres': 'آداب',
   'Sciences Expérimentales': 'علوم تجريبية',
   'Mathématiques': 'رياضيات',
   'Technique Mathématique': 'تقني رياضي',

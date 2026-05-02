@@ -15,19 +15,19 @@ const FILIERE_META: Record<Filiere, {
   color: string
   subjects: string[]
 }> = {
-  'TC Sciences': {
+  'Scientifique': {
     icon: <FlaskConical className="w-7 h-7" />,
     description: 'Sciences, Maths, Physique',
     descriptionAr: 'علوم، رياضيات، فيزياء',
-    nameAr: 'جذع مشترك علوم',
+    nameAr: 'علوم',
     color: 'from-emerald-600/30 to-teal-600/20 border-emerald-500/20 hover:border-emerald-400/40',
     subjects: ['📐 Maths', '⚛️ Physique', '🌿 Sciences'],
   },
-  'TC Lettres': {
+  'Lettres': {
     icon: <BookText className="w-7 h-7" />,
     description: 'Arabe, Français, Anglais',
     descriptionAr: 'عربية، فرنسية، إنجليزية',
-    nameAr: 'جذع مشترك آداب',
+    nameAr: 'آداب',
     color: 'from-amber-600/30 to-orange-600/20 border-amber-500/20 hover:border-amber-400/40',
     subjects: ['📜 Arabe', '📖 Français', '🇬🇧 Anglais'],
   },

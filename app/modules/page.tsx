@@ -166,7 +166,11 @@ export default function ModulesPage() {
         {filtered.length === 0 && (
           <div className="text-center py-20 text-white/30">
             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
-            <p>{isAr ? 'لا توجد نتائج' : 'Aucun module trouvé'}</p>
+            <p>
+              {modules.length === 0 
+                ? `Niveau: ${level}, Filière: ${filiere} - Aucun module trouvé`
+                : (isAr ? 'لا توجد نتائج' : 'Aucun module trouvé')}
+            </p>
           </div>
         )}
 
