@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { BookOpen, Users, ClipboardList, CheckCircle2, TrendingUp } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Dashboard Professeur | Dourous-Net',
   description: 'Espace professeur',

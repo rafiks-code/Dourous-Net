@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { User, Mail, GraduationCap, BookOpen, Calendar, Edit2, Shield } from 'lucide-react'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Mon Profil | Dourous-Net',
   description: 'Gérez vos informations personnelles',

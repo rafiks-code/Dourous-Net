@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Devoirs | Dourous-Net',
   description: 'Gérez vos devoirs et soumissions',

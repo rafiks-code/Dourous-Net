@@ -4,6 +4,8 @@ import { Award, Calendar, CheckCircle2, Search, TrendingUp } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatDate } from '@/lib/utils'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Notes | Dourous-Net',
   description: 'Consultez vos notes et évaluations',

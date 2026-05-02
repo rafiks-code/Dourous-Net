@@ -8,6 +8,8 @@ import { LanguageProvider } from '@/lib/language-context'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const cairo = Cairo({ subsets: ['arabic'], variable: '--font-cairo' })
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Dourous-Net | Extranet Éducatif Lycée',
   description:
