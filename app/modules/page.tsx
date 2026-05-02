@@ -84,14 +84,14 @@ export default function ModulesPage() {
               </span>
               <span className="text-white/30">·</span>
               <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium">
-                {isAr && filiere ? FILIERE_ARABIC[filiere] || filiere : filiere}
+                {language === 'ar' && filiere ? FILIERE_ARABIC[filiere] || filiere : filiere}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black">
-              <span className="gradient-text">{isAr ? 'اختر المادة' : 'Vos Modules'}</span>
+              <span className="gradient-text">{language === 'ar' ? 'وحداتك' : 'Vos Modules'}</span>
             </h1>
             <p className="text-white/50 mt-1">
-              {filtered.length} {isAr ? 'مادة متاحة' : 'modules disponibles'}
+              {language === 'ar' ? 'اختر وحدة للوصول إلى الدروس' : 'Choisissez un module pour accéder aux cours'}
             </p>
           </div>
           <BookOpen className="w-10 h-10 text-indigo-400/50" />
@@ -104,7 +104,7 @@ export default function ModulesPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={isAr ? 'ابحث عن مادة...' : 'Rechercher un module...'}
+            placeholder={language === 'ar' ? 'ابحث عن وحدة...' : 'Rechercher un module...'}
             className={`w-full h-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-white/8 transition-all ${isAr ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4'}`}
           />
         </div>
@@ -144,9 +144,6 @@ export default function ModulesPage() {
                     <p className="font-bold text-white text-sm leading-tight">
                       {language === 'ar' ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName}
                     </p>
-                    <p className="text-indigo-400 text-xs mt-0.5 font-medium">
-                      {language === 'ar' ? moduleName : (MODULE_ARABIC[moduleName] || '')}
-                    </p>
                     <p className="text-white/40 text-[10px] mt-1.5">
                       {isLoggedIn ? (isAr ? 'انقر للوصول' : 'Cliquer pour accéder') : (isAr ? 'يتطلب تسجيل دخول' : 'Connexion requise')}
                     </p>
@@ -165,7 +162,7 @@ export default function ModulesPage() {
             <p>
               {modules.length === 0 
                 ? `Niveau: ${level}, Filière: ${filiere} - Aucun module trouvé`
-                : (isAr ? 'لا توجد نتائج' : 'Aucun module trouvé')}
+                : (language === 'ar' ? 'لا توجد وحدات' : 'Aucun module trouvé')}
             </p>
           </div>
         )}
