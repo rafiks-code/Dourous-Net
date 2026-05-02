@@ -23,15 +23,27 @@ export default function ModulesPage() {
     const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
 
     if (storedLang) setLang(storedLang)
-    if (!storedLevel) { router.push('/level'); return }
-    if (!storedFiliere) { router.push('/filiere'); return }
-    setLevel(storedLevel)
-    setFiliere(storedFiliere)
-
-    // Check auth
+    // Check auth first to avoid infinite redirect loop
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user)
+      
+      if (user) {
+        // If logged in, get level/filiere from their profile
+        const userLevel = user.user_metadata?.level as Level
+        const userFiliere = user.user_metadata?.filiere as Filiere
+        
+        if (userLevel) setLevel(userLevel)
+        if (userFiliere) setFiliere(userFiliere)
+        
+      } else {
+        // If not logged in, rely on local storage or redirect
+        if (!storedLevel) { router.push('/level'); return }
+        if (!storedFiliere) { router.push('/filiere'); return }
+        
+        setLevel(storedLevel)
+        setFiliere(storedFiliere)
+      }
     })
   }, [router])
 
@@ -62,11 +74,7 @@ export default function ModulesPage() {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
-        {/* Back */}
-        <Link href="/filiere" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-8 transition-colors">
-          <ArrowLeft className={`w-4 h-4 ${isAr ? 'rotate-180' : ''}`} />
-          {isAr ? 'رجوع' : 'Retour'}
-        </Link>
+
 
         {/* Header */}
         <div className={`flex items-start justify-between mb-8 flex-wrap gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>

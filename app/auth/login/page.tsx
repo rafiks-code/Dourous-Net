@@ -21,12 +21,18 @@ export default function LoginPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    // If already logged in, redirect
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) router.push(redirect)
+      if (user) {
+        const role = user.user_metadata?.role
+        if (role === 'professor') {
+          router.push('/prof/dashboard')
+        } else {
+          router.push('/modules')
+        }
+      }
     })
-  }, [redirect, router])
+  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +40,7 @@ export default function LoginPage() {
     setError('')
     const supabase = createClient()
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
 
     if (signInError) {
       setError(
@@ -46,7 +52,12 @@ export default function LoginPage() {
       return
     }
 
-    router.push(redirect)
+    const role = data.user?.user_metadata?.role
+    if (role === 'professor') {
+      router.push('/prof/dashboard')
+    } else {
+      router.push('/modules')
+    }
     router.refresh()
   }
 

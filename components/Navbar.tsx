@@ -159,7 +159,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
 
-            <Link href="/" className="flex items-center gap-2 font-bold text-white">
+            <Link href={userEmail ? "/modules" : "/"} className="flex items-center gap-2 font-bold text-white">
               <GraduationCap className="h-6 w-6 text-indigo-400" />
               <span className="text-lg bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent hidden sm:inline-block" dir="ltr">
                 Dourous‑Net

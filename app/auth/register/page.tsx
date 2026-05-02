@@ -78,24 +78,15 @@ export default function RegisterPage() {
         })
       }
     }
-    setSuccess(true)
-    setLoading(false)
-    setTimeout(() => router.push('/auth/login'), 3000)
+    const role = form.role // 'student' or 'professor'
+    if (role === 'professor') {
+      router.push('/prof/dashboard')  
+    } else {
+      router.push('/modules')
+    }
   }
 
-  if (success) {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
-        <div className="glass-card p-10 text-center max-w-md w-full animate-scale-in">
-          <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Inscription réussie !</h2>
-          <p className="text-white/50 text-sm">Vérifiez votre email pour confirmer votre compte.</p>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
