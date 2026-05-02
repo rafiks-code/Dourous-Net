@@ -67,8 +67,9 @@ export default function SettingsPage() {
 
       setNameForm(prev => ({ ...prev, loading: false, success: 'Nom mis à jour avec succès' }))
       setTimeout(() => setNameForm(prev => ({ ...prev, success: '' })), 3000)
-    } catch (err: any) {
-      setNameForm(prev => ({ ...prev, loading: false, error: err.message }))
+    } catch (err: Error | unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      setNameForm(prev => ({ ...prev, loading: false, error: errorMsg }))
     }
   }
 
@@ -81,8 +82,9 @@ export default function SettingsPage() {
       if (error) throw error
 
       setEmailForm(prev => ({ ...prev, loading: false, success: 'Un lien de confirmation a été envoyé à la nouvelle et l\'ancienne adresse email.' }))
-    } catch (err: any) {
-      setEmailForm(prev => ({ ...prev, loading: false, error: err.message }))
+    } catch (err: Error | unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      setEmailForm(prev => ({ ...prev, loading: false, error: errorMsg }))
     }
   }
 
@@ -105,8 +107,9 @@ export default function SettingsPage() {
 
       setPasswordForm(prev => ({ ...prev, oldPassword: '', newPassword: '', confirmPassword: '', loading: false, success: 'Mot de passe mis à jour avec succès' }))
       setTimeout(() => setPasswordForm(prev => ({ ...prev, success: '' })), 3000)
-    } catch (err: any) {
-      setPasswordForm(prev => ({ ...prev, loading: false, error: err.message }))
+    } catch (err: Error | unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      setPasswordForm(prev => ({ ...prev, loading: false, error: errorMsg }))
     }
   }
 
@@ -127,8 +130,9 @@ export default function SettingsPage() {
       await supabase.from(table).delete().eq('id', user.id)
       await supabase.auth.signOut()
       router.push('/')
-    } catch (err: any) {
-      setDeleteForm(prev => ({ ...prev, loading: false, error: err.message }))
+    } catch (err: Error | unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      setDeleteForm(prev => ({ ...prev, loading: false, error: errorMsg }))
     }
   }
 
@@ -219,7 +223,7 @@ export default function SettingsPage() {
               
               <Button type="submit" variant="secondary" className="w-full" disabled={emailForm.loading || emailForm.email === user.email}>
                 {emailForm.loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-                Mettre à jour l'email
+                Mettre à jour l&apos;email
               </Button>
             </form>
           </div>

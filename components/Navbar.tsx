@@ -37,7 +37,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   const [isSearching, setIsSearching] = useState(false)
 
   // Notifications state
-  const [notifications, setNotifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; is_read: boolean; read: boolean; created_at: string }[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
 
   // Fetch notifications
@@ -425,7 +425,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               {isSearching ? (
                 <div className="p-8 text-center text-white/40">{t('loading')}</div>
               ) : searchQuery.trim().length > 0 && searchResults.length === 0 ? (
-                <div className="p-8 text-center text-white/40">Aucun résultat trouvé pour "{searchQuery}"</div>
+                <div className="p-8 text-center text-white/40">Aucun résultat trouvé pour &quot;{searchQuery}&quot;</div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-1">
                   {searchResults.map((result, i) => (
