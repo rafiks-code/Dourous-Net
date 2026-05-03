@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const runtime = 'nodejs'
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -8,7 +10,8 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json()
+    const body = await req.json()
+    const { email, password } = body
 
     if (!email || !password) {
       return NextResponse.json(
@@ -24,13 +27,17 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Find user by email
-    const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-    
+    // Find user by email using admin API
+    const { data: usersData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      })
+
     if (listError) {
       console.error('List users error:', listError)
       return NextResponse.json(
-        { error: 'Erreur serveur lors de la recherche de l\'utilisateur' },
+        { error: 'Erreur serveur lors de la recherche' },
         { status: 500 }
       )
     }
@@ -46,11 +53,12 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Update password in Supabase Auth
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      user.id,
-      { password: password }
-    )
+    // Update password using admin API
+    const { error: updateError } =
+      await supabaseAdmin.auth.admin.updateUserById(
+        user.id,
+        { password: password }
+      )
 
     if (updateError) {
       console.error('Update password error:', updateError)
@@ -63,9 +71,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error: any) {
-    console.error('Reset password error:', error)
+    console.error('Reset password route error:', error)
     return NextResponse.json(
-      { error: 'Erreur serveur' },
+      { error: 'Erreur serveur: ' + error.message },
       { status: 500 }
     )
   }

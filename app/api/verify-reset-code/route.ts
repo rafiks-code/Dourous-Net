@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+export const runtime = 'nodejs'
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -8,7 +10,8 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, code } = await req.json()
+    const body = await req.json()
+    const { email, code } = body
 
     if (!email || !code) {
       return NextResponse.json(
@@ -17,7 +20,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Find the code in database
     const { data, error } = await supabaseAdmin
       .from('password_reset_codes')
       .select('*')
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('Verify code error:', error)
     return NextResponse.json(
-      { error: 'Erreur de vérification' },
+      { error: 'Erreur de vérification: ' + error.message },
       { status: 500 }
     )
   }
