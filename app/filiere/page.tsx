@@ -5,9 +5,10 @@ import { useEffect, useState } from 'react'
 import { FILIERES_BY_LEVEL, STORAGE_KEYS, type Filiere, type Level, FILIERE_ARABIC } from '@/lib/constants'
 import { getFromStorage, setToStorage } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
-import { ChevronRight, FlaskConical, BookText, TrendingUp, Calculator, Wrench, Globe2, ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookText, Calculator, ChevronRight, FlaskConical, Globe2, TrendingUp, Wrench } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 const FILIERE_META: Record<Filiere, {
   icon: React.ReactNode
@@ -79,6 +80,18 @@ export default function FilierePage() {
   const { language, t } = useLanguage()
   const [level, setLevel] = useState<string>('')
   const isAr = language === 'ar'
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) setIsLoggedIn(true)
+      } catch (e) {}
+    }
+    checkAuth()
+  }, [])
 
   useEffect(() => {
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL)
@@ -164,12 +177,16 @@ export default function FilierePage() {
           })}
         </div>
 
-        <div className="flex justify-center mt-10 gap-2">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className={cn("h-1.5 rounded-full transition-all", step <= 2 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20')} />
-          ))}
-        </div>
-        <p className="text-center text-white/30 text-xs mt-2">{t('step')} 2 {t('of')} 4</p>
+        {!isLoggedIn && (
+          <>
+            <div className="flex justify-center mt-10 gap-2">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className={cn("h-1.5 rounded-full transition-all", step <= 2 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20')} />
+              ))}
+            </div>
+            <p className="text-center text-white/30 text-xs mt-2">{t('step')} 2 {t('of')} 4</p>
+          </>
+        )}
       </div>
     </div>
   )

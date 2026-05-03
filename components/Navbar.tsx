@@ -134,6 +134,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     { name: 'homework', href: '/homework', icon: <FileText className="w-4 h-4" /> },
     { name: 'grades', href: '/grades', icon: <ClipboardList className="w-4 h-4" /> },
     { name: 'messages', href: '/messages', icon: <MessageSquare className="w-4 h-4" /> },
+    { name: 'myModules', href: '/modules', icon: <BookOpen className="w-4 h-4" /> },
   ] as const
 
   const professorLinks = [
@@ -169,7 +170,9 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
             {userEmail && (
               <nav className="hidden lg:flex items-center gap-1">
                 {navLinks.map(link => {
-                  const isActive = pathname === link.href
+                  const isActive = link.href === '/modules'
+                    ? (pathname === '/modules' || pathname.startsWith('/module/'))
+                    : pathname === link.href
                   return (
                     <Link key={link.name} href={link.href}>
                       <Button 
@@ -368,7 +371,9 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
             
             <nav className="space-y-1">
               {navLinks.map(link => {
-                const isActive = pathname === link.href
+                const isActive = link.href === '/modules'
+                  ? (pathname === '/modules' || pathname.startsWith('/module/'))
+                  : pathname === link.href
                 return (
                   <Link key={link.name} href={link.href} onClick={() => setIsMobileMenuOpen(false)}>
                     <div className={cn(

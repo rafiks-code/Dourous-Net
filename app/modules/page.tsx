@@ -26,18 +26,18 @@ export default function ModulesPage() {
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user)
-      
+
       if (user) {
         const userLevel = user.user_metadata?.level as Level
         const userFiliere = user.user_metadata?.filiere as Filiere
-        
+
         if (userLevel) setLevel(userLevel)
         if (userFiliere) setFiliere(userFiliere)
-        
+
       } else {
         if (!storedLevel) { router.push('/level'); return }
         if (!storedFiliere) { router.push('/filiere'); return }
-        
+
         setLevel(storedLevel)
         setFiliere(storedFiliere)
       }
@@ -154,12 +154,16 @@ export default function ModulesPage() {
           </div>
         )}
 
-        <div className="flex justify-center mt-12 gap-2">
-          {[1, 2, 3, 4].map((step) => (
-            <div key={step} className={cn("h-1.5 rounded-full transition-all", step <= 3 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20')} />
-          ))}
-        </div>
-        <p className="text-center text-white/30 text-xs mt-2">{t('step')} 3 {t('of')} 4</p>
+        {!isLoggedIn && (
+          <>
+            <div className="flex justify-center mt-12 gap-2">
+              {[1, 2, 3, 4].map((step) => (
+                <div key={step} className={cn("h-1.5 rounded-full transition-all", step <= 3 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20')} />
+              ))}
+            </div>
+            <p className="text-center text-white/30 text-xs mt-2">{t('step')} 3 {t('of')} 4</p>
+          </>
+        )}
       </div>
     </div>
   )

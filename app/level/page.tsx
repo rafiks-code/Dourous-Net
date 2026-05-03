@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { LEVELS, STORAGE_KEYS, type Level } from '@/lib/constants'
 import { setToStorage } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
+import { createClient } from '@/lib/supabase/client'
 import { ChevronRight, GraduationCap } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,18 @@ export default function LevelPage() {
   const router = useRouter()
   const { language, t } = useLanguage()
   const isAr = language === 'ar'
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) setIsLoggedIn(true)
+      } catch (e) {}
+    }
+    checkAuth()
+  }, [])
 
   const handleLevel = (level: Level) => {
     setToStorage(STORAGE_KEYS.LEVEL, level)
@@ -95,18 +108,22 @@ export default function LevelPage() {
           })}
         </div>
 
-        <div className="flex justify-center mt-10 gap-2">
-          {[1, 2, 3, 4].map((step) => (
-            <div
-              key={step}
-              className={cn(
-                "h-1.5 rounded-full transition-all",
-                step === 1 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20'
-              )}
-            />
-          ))}
-        </div>
-        <p className="text-center text-white/30 text-xs mt-2">{t('step')} 1 {t('of')} 4</p>
+        {!isLoggedIn && (
+          <>
+            <div className="flex justify-center mt-10 gap-2">
+              {[1, 2, 3, 4].map((step) => (
+                <div
+                  key={step}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    step === 1 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20'
+                  )}
+                />
+              ))}
+            </div>
+            <p className="text-center text-white/30 text-xs mt-2">{t('step')} 1 {t('of')} 4</p>
+          </>
+        )}
       </div>
     </div>
   )
