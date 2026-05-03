@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { 
   LogOut, LayoutDashboard, BookOpen, Bell, Search, 
-  Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings
+  Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings, CheckCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -133,6 +133,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     { name: 'lessons', href: '/lessons', icon: <BookOpen className="w-4 h-4" /> },
     { name: 'homework', href: '/homework', icon: <FileText className="w-4 h-4" /> },
     { name: 'grades', href: '/grades', icon: <ClipboardList className="w-4 h-4" /> },
+    { name: 'corrections', href: '/corrections', icon: <CheckCircle className="w-4 h-4" /> },
     { name: 'messages', href: '/messages', icon: <MessageSquare className="w-4 h-4" /> },
     { name: 'myModules', href: '/modules', icon: <BookOpen className="w-4 h-4" /> },
   ] as const

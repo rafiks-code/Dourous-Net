@@ -28,7 +28,7 @@ interface Submission {
 interface Correction {
   id: string
   homework_id: string
-  file_url: string
+  pdf_url: string
   grade: number
   comment: string
 }
@@ -207,7 +207,7 @@ export default function HomeworkPage() {
                           variant="outline"
                           size="sm"
                           className="w-full rounded-xl border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 gap-2"
-                          onClick={() => window.open(correction.file_url, '_blank')}
+                          onClick={() => window.open(correction.pdf_url, '_blank')}
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           {t('viewCorrection')}
