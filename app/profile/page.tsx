@@ -3,207 +3,245 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { cn, formatDate } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { User, Mail, GraduationCap, BookOpen, Calendar, Loader2, CheckCircle2 } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { User, Mail, GraduationCap, BookOpen, Calendar, Edit2, Shield, Loader2 } from 'lucide-react'
+import Link from 'next/link'
 import { useLanguage } from '@/lib/language-context'
 
 export default function ProfilePage() {
   const router = useRouter()
   const { t, language } = useLanguage()
   const supabase = createClient()
-  
-  const [loading, setLoading] = useState(true)
-  const [updating, setUpdating] = useState(false)
+
   const [user, setUser] = useState<any>(null)
-  const [profileData, setProfileData] = useState<any>(null)
-  const [fullName, setFullName] = useState('')
-  const [message, setMessage] = useState({ type: '', text: '' })
+  const [dbUser, setDbUser] = useState<any>(null)
+  const [role, setRole] = useState<string>('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/auth/login')
-        return
+    async function loadData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
+        setUser(user)
+
+        const userRole = user.user_metadata?.role === 'professor' 
+          ? 'professor' 
+          : 'student'
+        setRole(userRole)
+
+        if (userRole === 'professor') {
+          const { data } = await supabase
+            .from('professors')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setDbUser(data)
+        } else {
+          const { data } = await supabase
+            .from('students')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+          setDbUser(data)
+        }
+      } catch (error) {
+        console.error('Profile error:', error)
+      } finally {
+        setLoading(false)
       }
-      setUser(user)
-
-      const role = user.user_metadata?.role || 'student'
-      const table = role === 'professor' ? 'professors' : 'students'
-      
-      const { data } = await supabase
-        .from(table)
-        .select('*')
-        .eq('id', user.id)
-        .single()
-      
-      setProfileData(data)
-      setFullName(data?.full_name || '')
-      setLoading(false)
     }
-    loadProfile()
-  }, [router, supabase])
-
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setUpdating(true)
-    setMessage({ type: '', text: '' })
-
-    const role = user.user_metadata?.role || 'student'
-    const table = role === 'professor' ? 'professors' : 'students'
-
-    const { error } = await supabase
-      .from(table)
-      .update({ full_name: fullName })
-      .eq('id', user.id)
-
-    if (error) {
-      setMessage({ type: 'error', text: t('error') })
-    } else {
-      setMessage({ type: 'success', text: t('success') })
-    }
-    setUpdating(false)
-  }
+    loadData()
+  }, [])
 
   if (loading) {
-    return <div className="flex justify-center p-12 text-white/50">{t('loading')}</div>
+    return (
+      <div className="flex justify-center p-12">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+      </div>
+    )
   }
 
-  const initials = fullName
-    ? fullName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
-    : user?.email?.[0]?.toUpperCase() ?? '?'
+  const fullName = dbUser?.full_name 
+    || user?.user_metadata?.full_name 
+    || 'Utilisateur'
+  const displayRole = role === 'professor' 
+    ? t('professorRole') || 'Professeur'
+    : t('student') || 'Étudiant'
+  const level = dbUser?.level || user?.user_metadata?.level || ''
+  const filiere = dbUser?.filiere || user?.user_metadata?.filiere || ''
+  const subject = dbUser?.subject || user?.user_metadata?.subject || ''
 
-  const role = user?.user_metadata?.role === 'professor' ? t('profRole') : t('studentRole')
+  const initials = fullName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
 
   return (
-    <div className="page-container max-w-4xl mx-auto py-10 px-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="space-y-8">
+    <div 
+      className="page-container max-w-4xl mx-auto py-12"
+      dir={language === 'ar' ? 'rtl' : 'ltr'}
+    >
+      {/* Background glows */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-900/15 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 space-y-8">
+
+        {/* Page title */}
         <div>
           <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
             <User className="w-8 h-8 text-indigo-400" />
             {t('profileTitle')}
           </h1>
-          <p className="text-white/50 mt-1">{t('editProfile')}</p>
+          <p className="text-white/50 mt-2">
+            {t('manageProfileDesc') || 'Gérez vos informations personnelles'}
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Left Column - Card */}
-          <div className="md:col-span-4 space-y-6">
-            <div className="glass-card p-8 text-center relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Avatar className="h-24 w-24 mx-auto mb-6 border-2 border-indigo-500/20 shadow-xl shadow-indigo-500/10">
-                <AvatarFallback className="text-3xl bg-indigo-500/20 text-indigo-200">
+        {/* Main card */}
+        <div className="glass-card overflow-hidden">
+
+          {/* Cover header */}
+          <div className="h-32 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border-b border-white/5" />
+
+          <div className="px-8 pb-8">
+
+            {/* Avatar + name + role */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-12 mb-8">
+              <Avatar className="h-28 w-28 border-4 border-[#0a0a1a] shadow-xl shadow-indigo-500/20">
+                <AvatarFallback className="text-3xl bg-indigo-500/20 text-indigo-200 font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <h2 className="text-xl font-bold text-white truncate">{fullName}</h2>
-              <p className="text-indigo-400 text-sm font-bold uppercase tracking-wider mt-1">{role}</p>
-              
-              <div className="mt-8 pt-8 border-t border-white/5 space-y-4">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/30">{t('memberSince')}</span>
-                  <span className="text-white/60">{formatDate(user.created_at)}</span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/30">{t('active')}</span>
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+
+              <div className="flex-1 text-center sm:text-left">
+                <h2 className="text-2xl font-black text-white">{fullName}</h2>
+                <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
+                  <Badge 
+                    variant={role === 'professor' ? 'success' : 'info'} 
+                    className="gap-1"
+                  >
+                    {role === 'professor' 
+                      ? <Shield className="w-3 h-3" /> 
+                      : <GraduationCap className="w-3 h-3" />
+                    }
+                    {displayRole}
+                  </Badge>
+                  {user?.created_at && (
+                    <span className="text-xs text-white/40 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {t('memberSince')} {formatDate(user.created_at)}
+                    </span>
+                  )}
                 </div>
               </div>
+
+              <Link href="/settings">
+                <Button 
+                  variant="secondary" 
+                  className="gap-2 w-full sm:w-auto mt-4 sm:mt-0"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  {t('editProfile')}
+                </Button>
+              </Link>
             </div>
 
-            <div className="glass-card p-6 border-indigo-500/10">
-              <h3 className="text-sm font-bold text-white/40 uppercase tracking-widest mb-4">{t('profileInfo')}</h3>
+            {/* Info grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* Left column */}
               <div className="space-y-4">
-                {profileData?.level && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/30">
-                      <GraduationCap className="w-4 h-4" />
+                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
+                  {t('generalInfo') || 'Informations générales'}
+                </h3>
+
+                {/* Email */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-indigo-500/20 flex items-center justify-center shrink-0">
+                    <Mail className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs">{t('email')}</p>
+                    <p className="text-white text-sm font-medium">
+                      {user?.email ?? '-'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Role */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                    {role === 'professor' 
+                      ? <Shield className="w-5 h-5 text-purple-400" />
+                      : <GraduationCap className="w-5 h-5 text-purple-400" />
+                    }
+                  </div>
+                  <div>
+                    <p className="text-white/40 text-xs">{t('role')}</p>
+                    <p className="text-white text-sm font-medium">{displayRole}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right column */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-white border-b border-white/10 pb-2">
+                  {t('profileInfo') || 'Informations du profil'}
+                </h3>
+
+                {/* Student fields */}
+                {role === 'student' && level && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
+                      <GraduationCap className="w-5 h-5 text-blue-400" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/30 uppercase font-bold">{t('level')}</p>
-                      <p className="text-sm text-white/70">{profileData.level}</p>
+                      <p className="text-white/40 text-xs">{t('level')}</p>
+                      <p className="text-white text-sm font-medium">{level}</p>
                     </div>
                   </div>
                 )}
-                {profileData?.filiere && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/30">
-                      <BookOpen className="w-4 h-4" />
+
+                {role === 'student' && filiere && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/30 uppercase font-bold">{t('filiere')}</p>
-                      <p className="text-sm text-white/70">{profileData.filiere}</p>
+                      <p className="text-white/40 text-xs">{t('filiere')}</p>
+                      <p className="text-white text-sm font-medium">{filiere}</p>
                     </div>
                   </div>
                 )}
-                {profileData?.subject && (
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-white/30">
-                      <BookOpen className="w-4 h-4" />
+
+                {/* Professor field */}
+                {role === 'professor' && subject && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
+                    <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-5 h-5 text-green-400" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-white/30 uppercase font-bold">{t('subject')}</p>
-                      <p className="text-sm text-white/70">{profileData.subject}</p>
+                      <p className="text-white/40 text-xs">
+                        {t('subjectTaught') || 'Matière enseignée'}
+                      </p>
+                      <p className="text-white text-sm font-medium">{subject}</p>
                     </div>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
 
-          {/* Right Column - Form */}
-          <div className="md:col-span-8">
-            <div className="glass-card p-8">
-              <form onSubmit={handleUpdate} className="space-y-6">
-                {message.text && (
-                  <div className={cn(
-                    "p-4 rounded-xl text-sm border animate-in fade-in slide-in-from-top-1",
-                    message.type === 'success' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-red-500/10 border-red-500/20 text-red-400"
-                  )}>
-                    {message.text}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">{t('fullName')}</Label>
-                    <div className="relative group">
-                      <User className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-indigo-400 transition-colors", language === 'ar' ? "right-3" : "left-3")} />
-                      <Input 
-                        id="fullName" 
-                        value={fullName} 
-                        onChange={(e) => setFullName(e.target.value)}
-                        className={cn("bg-white/5 border-white/10", language === 'ar' ? "pr-10" : "pl-10")}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 opacity-60">
-                    <Label htmlFor="email">{t('email')}</Label>
-                    <div className="relative">
-                      <Mail className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30", language === 'ar' ? "right-3" : "left-3")} />
-                      <Input 
-                        id="email" 
-                        value={user.email} 
-                        disabled 
-                        className={cn("bg-white/5 border-white/10 cursor-not-allowed", language === 'ar' ? "pr-10" : "pl-10")}
-                      />
-                    </div>
-                    <p className="text-[10px] text-white/30 italic">{t('settings')}</p>
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" variant="gradient" disabled={updating} className="px-8 font-bold">
-                    {updating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
-                    {t('save')}
-                  </Button>
-                </div>
-              </form>
             </div>
           </div>
         </div>

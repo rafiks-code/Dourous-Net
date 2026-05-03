@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Award, TrendingUp, BookOpen, Calendar, Loader2 } from 'lucide-react'
-import { formatDate } from '@/lib/utils'
+import { formatDate, cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { useLanguage } from '@/lib/language-context'
 
