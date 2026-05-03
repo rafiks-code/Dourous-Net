@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,23 +22,44 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Find user by email using admin API
-    const { data: usersData, error: listError } =
-      await supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (listError) {
-      console.error('List users error:', listError)
+    if (!supabaseUrl || !serviceKey) {
       return NextResponse.json(
-        { error: 'Erreur serveur lors de la recherche' },
+        { error: 'Configuration serveur manquante' },
         { status: 500 }
       )
     }
 
-    const user = usersData.users.find(
-      u => u.email?.toLowerCase() === email.toLowerCase()
+    // Step 1: Find user by email using REST API directly
+    const listRes = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!listRes.ok) {
+      const err = await listRes.text()
+      console.error('List users failed:', err)
+      return NextResponse.json(
+        { error: 'Erreur lors de la recherche utilisateur' },
+        { status: 500 }
+      )
+    }
+
+    const listData = await listRes.json()
+    const users = listData.users ?? []
+
+    const user = users.find(
+      (u: any) =>
+        u.email?.toLowerCase() === email.toLowerCase()
     )
 
     if (!user) {
@@ -53,15 +69,23 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Update password using admin API
-    const { error: updateError } =
-      await supabaseAdmin.auth.admin.updateUserById(
-        user.id,
-        { password: password }
-      )
+    // Step 2: Update password using REST API directly
+    const updateRes = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users/${user.id}`,
+      {
+        method: 'PUT',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: password }),
+      }
+    )
 
-    if (updateError) {
-      console.error('Update password error:', updateError)
+    if (!updateRes.ok) {
+      const err = await updateRes.text()
+      console.error('Update password failed:', err)
       return NextResponse.json(
         { error: 'Erreur lors de la mise à jour du mot de passe' },
         { status: 500 }
@@ -71,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error: any) {
-    console.error('Reset password route error:', error)
+    console.error('Reset password error:', error.message)
     return NextResponse.json(
       { error: 'Erreur serveur: ' + error.message },
       { status: 500 }

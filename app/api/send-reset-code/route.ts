@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export const runtime = 'nodejs'
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,22 +15,42 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Check if user exists
-    const { data: usersData, error: listError } =
-      await supabaseAdmin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      })
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (listError) {
+    if (!supabaseUrl || !serviceKey) {
+      return NextResponse.json(
+        { error: 'Configuration serveur manquante' },
+        { status: 500 }
+      )
+    }
+
+    // Check if user exists using REST API
+    const listRes = await fetch(
+      `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1000`,
+      {
+        method: 'GET',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
+
+    if (!listRes.ok) {
       return NextResponse.json(
         { error: 'Erreur serveur' },
         { status: 500 }
       )
     }
 
-    const userExists = usersData.users.some(
-      u => u.email?.toLowerCase() === email.toLowerCase()
+    const listData = await listRes.json()
+    const users = listData.users ?? []
+
+    const userExists = users.some(
+      (u: any) =>
+        u.email?.toLowerCase() === email.toLowerCase()
     )
 
     if (!userExists) {
@@ -50,28 +65,46 @@ export async function POST(req: NextRequest) {
       100000 + Math.random() * 900000
     ).toString()
 
-    // Delete old codes for this email
-    await supabaseAdmin
-      .from('password_reset_codes')
-      .delete()
-      .eq('email', email.toLowerCase())
+    // Delete old codes using REST API
+    await fetch(
+      `${supabaseUrl}/rest/v1/password_reset_codes?email=eq.${encodeURIComponent(email.toLowerCase())}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    )
 
-    // Save new code — expires in 15 minutes
-    const { error: insertError } = await supabaseAdmin
-      .from('password_reset_codes')
-      .insert({
-        email: email.toLowerCase(),
-        code: code,
-        expires_at: new Date(
-          Date.now() + 15 * 60 * 1000
-        ).toISOString(),
-        used: false,
-      })
+    // Save new code using REST API
+    const insertRes = await fetch(
+      `${supabaseUrl}/rest/v1/password_reset_codes`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': serviceKey,
+          'Authorization': `Bearer ${serviceKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          email: email.toLowerCase(),
+          code: code,
+          expires_at: new Date(
+            Date.now() + 15 * 60 * 1000
+          ).toISOString(),
+          used: false,
+        }),
+      }
+    )
 
-    if (insertError) {
-      console.error('Insert code error:', insertError)
+    if (!insertRes.ok) {
+      const err = await insertRes.text()
+      console.error('Insert code error:', err)
       return NextResponse.json(
-        { error: 'Erreur lors de la sauvegarde du code' },
+        { error: 'Erreur sauvegarde du code' },
         { status: 500 }
       )
     }
@@ -87,9 +120,7 @@ export async function POST(req: NextRequest) {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_APP_PASSWORD,
       },
-      tls: {
-        rejectUnauthorized: false,
-      },
+      tls: { rejectUnauthorized: false },
     })
 
     await transporter.sendMail({
@@ -135,9 +166,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true })
 
   } catch (error: any) {
-    console.error('Send reset code error:', error.message)
+    console.error('Send code error:', error.message)
     return NextResponse.json(
-      { error: 'Erreur lors de l\'envoi: ' + error.message },
+      { error: "Erreur lors de l'envoi: " + error.message },
       { status: 500 }
     )
   }
