@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { BookOpen, Users, ClipboardList, CheckCircle2, TrendingUp, Loader2 } from 'lucide-react'
 import { useLanguage } from '@/lib/language-context'
+import { formatDate } from '@/lib/utils'
 
 export default function ProfDashboardPage() {
   const router = useRouter()
@@ -59,19 +60,19 @@ export default function ProfDashboardPage() {
   }, [router, supabase])
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
+    return <div className="flex justify-center p-12 text-white/50">{t('loading')}</div>
   }
 
   return (
-    <div className="page-container max-w-6xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="page-container max-w-6xl mx-auto py-10 px-4" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-900/20 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10 space-y-8">
         <div>
-          <h1 className="text-3xl font-black gradient-text">{t('hello')} {prof?.full_name ?? ''}</h1>
-          <p className="text-white/50 mt-1">{t('authSubject')} : {prof?.subject ?? '—'}</p>
+          <h1 className="text-3xl font-black gradient-text">{t('profHello')} {prof?.full_name ?? ''}</h1>
+          <p className="text-white/50 mt-1">{t('profSubject')} : {prof?.subject ?? '—'}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -81,7 +82,7 @@ export default function ProfDashboardPage() {
             </div>
             <div>
               <p className="text-3xl font-black text-white">{stats.students}</p>
-              <p className="text-xs text-white/40">{t('studentsCount')}</p>
+              <p className="text-xs text-white/40">{t('totalStudents')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-emerald-500">
@@ -90,7 +91,7 @@ export default function ProfDashboardPage() {
             </div>
             <div>
               <p className="text-3xl font-black text-white">{stats.lessons}</p>
-              <p className="text-xs text-white/40">{t('lessonsPublished')}</p>
+              <p className="text-xs text-white/40">{t('totalLessons')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-amber-500">
@@ -128,13 +129,13 @@ export default function ProfDashboardPage() {
                       <p className="text-xs text-white/40">{t('homeworkTitle')}: {sub.homework?.title}</p>
                     </div>
                     <span className="text-[10px] text-white/30 bg-black/20 px-2 py-1 rounded">
-                      {t('new')}
+                      {formatDate(sub.submitted_at)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-white/40 italic">{t('noRecentActivity')}</p>
+              <p className="text-sm text-white/40 italic">{t('noActivity')}</p>
             )}
           </div>
         </div>

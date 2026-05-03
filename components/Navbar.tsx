@@ -33,7 +33,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<{id: string, title: string, type: 'Cours' | 'Devoir', url: string}[]>([])
+  const [searchResults, setSearchResults] = useState<{id: string, title: string, type: 'lessons' | 'homework', url: string}[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
   // Notifications state
@@ -109,8 +109,8 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
           .limit(5)
 
         const results = [
-          ...(lessonsData || []).map(l => ({ ...l, type: 'Cours' as const, url: userRole === 'professor' ? '/prof/lessons' : '/lessons' })),
-          ...(homeworkData || []).map(h => ({ ...h, type: 'Devoir' as const, url: userRole === 'professor' ? '/prof/homework' : '/homework' }))
+          ...(lessonsData || []).map(l => ({ ...l, type: 'lessons' as const, url: userRole === 'professor' ? '/prof/lessons' : '/lessons' })),
+          ...(homeworkData || []).map(h => ({ ...h, type: 'homework' as const, url: userRole === 'professor' ? '/prof/homework' : '/homework' }))
         ]
         
         setSearchResults(results)
@@ -124,7 +124,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     return () => clearTimeout(delayDebounceFn)
   }, [searchQuery, supabase, userRole])
 
-  const initials = userName && userName !== 'Étudiant'
+  const initials = userName && userName !== t('studentRole')
     ? userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : userEmail?.[0]?.toUpperCase() ?? '?'
 
@@ -137,10 +137,10 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   ] as const
 
   const professorLinks = [
-    { name: 'profDashboard', href: '/prof/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { name: 'dashboard', href: '/prof/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { name: 'lessons', href: '/prof/lessons', icon: <BookOpen className="w-4 h-4" /> },
     { name: 'homework', href: '/prof/homework', icon: <FileText className="w-4 h-4" /> },
-    { name: 'correction', href: '/prof/corrections', icon: <Check className="w-4 h-4" /> },
+    { name: 'correctionsTitle', href: '/prof/corrections', icon: <Check className="w-4 h-4" /> },
     { name: 'grades', href: '/prof/grades', icon: <ClipboardList className="w-4 h-4" /> },
     { name: 'messages', href: '/prof/messages', icon: <MessageSquare className="w-4 h-4" /> },
   ] as const
@@ -159,10 +159,10 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
 
-            <Link href={userEmail ? "/modules" : "/"} className="flex items-center gap-2 font-bold text-white">
+            <Link href={userEmail ? "/dashboard" : "/"} className="flex items-center gap-2 font-bold text-white">
               <GraduationCap className="h-6 w-6 text-indigo-400" />
               <span className="text-lg bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent hidden sm:inline-block" dir="ltr">
-                Dourous‑Net
+                Dourous-Net
               </span>
             </Link>
 
@@ -194,11 +194,10 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
             <Button 
               variant="ghost" 
               size="sm" 
-              className="text-white/70 hover:text-white rounded-lg font-bold"
+              className="text-white/70 hover:text-white rounded-lg font-bold min-w-[40px]"
               onClick={() => setLanguage(language === 'fr' ? 'ar' : 'fr')}
-              title={language === 'fr' ? 'Passer en Arabe' : 'Passer en Français'}
             >
-              <Globe className="h-4 w-4 mr-2" />
+              <Globe className="h-4 w-4 mr-1 sm:mr-2" />
               {language === 'fr' ? 'FR' : 'ع'}
             </Button>
             
@@ -207,7 +206,6 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               size="icon" 
               className="text-white/70 hover:text-white rounded-full"
               onClick={() => setIsSearchOpen(true)}
-              title={t('search')}
             >
               <Search className="h-5 w-5" />
             </Button>
@@ -233,7 +231,10 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                   </Button>
 
                   {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4">
+                    <div className={cn(
+                      "absolute mt-2 w-80 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4",
+                      language === 'ar' ? "left-0" : "right-0"
+                    )}>
                       <div className="flex items-center justify-between p-4 border-b border-white/10">
                         <h3 className="font-semibold text-white">{t('notifications')}</h3>
                         {unreadCount > 0 && (
@@ -294,9 +295,12 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                   </Avatar>
                   
                   {isProfileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4">
+                    <div className={cn(
+                      "absolute mt-2 w-48 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4",
+                      language === 'ar' ? "left-0" : "right-0"
+                    )}>
                       <div className="p-3 border-b border-white/10">
-                        <p className="text-sm font-semibold text-white truncate">{userName || 'User'}</p>
+                        <p className="text-sm font-semibold text-white truncate">{userName || t('studentRole')}</p>
                         <p className="text-xs text-white/50 truncate">{userEmail}</p>
                       </div>
                       <div className="p-1">
@@ -351,9 +355,12 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
           
-          <div className="absolute top-0 left-0 bottom-0 w-64 bg-[#0a0a1a] border-r border-white/10 p-4 shadow-2xl animate-in slide-in-from-left">
+          <div className={cn(
+            "absolute top-0 bottom-0 w-64 bg-[#0a0a1a] border-white/10 p-4 shadow-2xl animate-in",
+            language === 'ar' ? "right-0 border-l slide-in-from-right" : "left-0 border-r slide-in-from-left"
+          )}>
             <div className="flex items-center justify-between mb-8 px-2">
-              <span className="font-bold text-lg text-white">Menu</span>
+              <span className="font-bold text-lg text-white">{t('menu')}</span>
               <button onClick={() => setIsMobileMenuOpen(false)} className="text-white/50 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
@@ -407,7 +414,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSearchOpen(false)} />
           <div className="relative w-full max-w-2xl bg-[#12122a] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="flex items-center p-4 border-b border-white/10">
-              <Search className="w-5 h-5 text-white/40 mr-3 ml-3" />
+              <Search className={cn("w-5 h-5 text-white/40", language === 'ar' ? "ml-3" : "mr-3")} />
               <input
                 autoFocus
                 type="text"
@@ -425,7 +432,9 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               {isSearching ? (
                 <div className="p-8 text-center text-white/40">{t('loading')}</div>
               ) : searchQuery.trim().length > 0 && searchResults.length === 0 ? (
-                <div className="p-8 text-center text-white/40">Aucun résultat trouvé pour &quot;{searchQuery}&quot;</div>
+                <div className="p-8 text-center text-white/40">
+                  {t('noData')}
+                </div>
               ) : searchResults.length > 0 ? (
                 <div className="space-y-1">
                   {searchResults.map((result, i) => (
@@ -434,13 +443,13 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                         <div className="flex items-center gap-3">
                           <div className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                            result.type === 'Cours' ? "bg-indigo-500/10 text-indigo-400" : "bg-blue-500/10 text-blue-400"
+                            result.type === 'lessons' ? "bg-indigo-500/10 text-indigo-400" : "bg-blue-500/10 text-blue-400"
                           )}>
-                            {result.type === 'Cours' ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                            {result.type === 'lessons' ? <BookOpen className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                           </div>
                           <div>
                             <p className="text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">{result.title}</p>
-                            <p className="text-xs text-white/40">{result.type === 'Cours' ? t('lessons') : t('homework')}</p>
+                            <p className="text-xs text-white/40">{t(result.type)}</p>
                           </div>
                         </div>
                       </div>
@@ -450,7 +459,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               ) : (
                 <div className="p-8 text-center text-white/40 text-sm flex items-center flex-col gap-2">
                   <Search className="w-8 h-8 opacity-20" />
-                  <p>Tapez au moins 2 caractères pour rechercher</p>
+                  <p>{t('searchPlaceholder')}</p>
                 </div>
               )}
             </div>

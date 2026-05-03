@@ -1,185 +1,138 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { BookOpen, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { GraduationCap, Mail, Lock, Loader2, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { useLanguage } from '@/lib/language-context'
+import { cn } from '@/lib/utils'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { language } = useLanguage()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') ?? '/dashboard'
-
+  const { t, language } = useLanguage()
+  const isAr = language === 'ar'
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const role = user.user_metadata?.role
-        if (role === 'professor') {
-          router.push('/prof/dashboard')
-        } else {
-          router.push('/modules')
-        }
-      }
-    })
-  }, [router])
+  const isPasswordChanged = searchParams.get('success') === 'password_changed'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    setError('')
+    setError(null)
+
     const supabase = createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-
-    if (signInError) {
-      setError(
-        signInError.message.includes('Invalid login credentials')
-          ? (language === 'ar' ? 'البريد أو كلمة المرور غير صحيحة' : 'Email ou mot de passe incorrect')
-          : signInError.message
-      )
+    if (error) {
+      setError(t('invalidCredentials'))
       setLoading(false)
-      return
-    }
-
-    const role = data.user?.user_metadata?.role
-    if (role === 'professor') {
-      router.push('/prof/dashboard')
     } else {
-      router.push('/modules')
+      const { data: { user } } = await supabase.auth.getUser()
+      const role = user?.user_metadata?.role
+      router.push(role === 'professor' ? '/prof/dashboard' : '/modules')
+      router.refresh()
     }
-    router.refresh()
   }
 
   return (
-    <div className={`min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12 ${language === 'ar' ? 'rtl' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-700/15 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-700/10 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 items-center justify-center shadow-xl shadow-indigo-500/30 mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4" dir={isAr ? 'rtl' : 'ltr'}>
+      <div className="w-full max-w-md space-y-8 glass-card p-8 relative overflow-hidden">
+        {/* Glow effect */}
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl" />
+        
+        <div className="text-center relative">
+          <div className="mx-auto w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-4 border border-indigo-500/20">
+            <GraduationCap className="w-8 h-8 text-indigo-400" />
           </div>
-          <h1 className="text-3xl font-black gradient-text">{language === 'ar' ? 'تسجيل الدخول' : 'Connexion'}</h1>
-          <p className="text-white/50 mt-2 text-sm">{language === 'ar' ? 'الوصول إلى مساحتك' : 'Accédez à votre espace étudiant'}</p>
+          <h1 className="text-3xl font-black gradient-text">Dourous-Net</h1>
+          <p className="text-white/50 mt-2">{t('signIn')}</p>
         </div>
 
-        {/* Card */}
-        <div className="glass-card p-8 animate-scale-in">
-          <form onSubmit={handleLogin} className="space-y-5">
-            {/* Email */}
-            <div className="space-y-2">
-              <Label htmlFor="email">{language === 'ar' ? 'البريد الإلكتروني' : 'Adresse email'}</Label>
+        {isPasswordChanged && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-3 animate-scale-in">
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+            <p>{t('passwordChanged')}</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm animate-in fade-in slide-in-from-top-1">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="email">{t('email')}</Label>
+            <div className="relative group">
+              <Mail className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-indigo-400 transition-colors", isAr ? "right-3" : "left-3")} />
               <Input
                 id="email"
                 type="email"
-                placeholder="votre@email.com"
+                placeholder={t('emailPlaceholder')}
+                className={isAr ? "pr-10" : "pl-10"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="email"
               />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">{language === 'ar' ? 'كلمة المرور' : 'Mot de passe'}</Label>
-                <Link href="/auth/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                  {language === 'ar' ? 'نسيت كلمة المرور؟' : 'Mot de passe oublié ?'}
-                </Link>
-              </div>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Error */}
-            {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                {error}
-              </div>
-            )}
-
-            {/* Submit */}
-            <Button
-              id="login-submit"
-              type="submit"
-              variant="gradient"
-              size="lg"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  {language === 'ar' ? 'جارٍ تسجيل الدخول...' : 'Connexion en cours...'}
-                </>
-              ) : (
-                language === 'ar' ? 'تسجيل الدخول' : 'Se connecter'
-              )}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10" />
-            </div>
-            <div className="relative flex justify-center text-xs text-white/30">
-              <span className="bg-[#0d0d25] px-3">ou</span>
             </div>
           </div>
 
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">{t('password')}</Label>
+              <Link
+                href="/auth/forgot-password"
+                className="text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+              >
+                {t('forgotPassword')}
+              </Link>
+            </div>
+            <div className="relative group">
+              <Lock className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-indigo-400 transition-colors", isAr ? "right-3" : "left-3")} />
+              <Input
+                id="password"
+                type="password"
+                placeholder={t('passwordPlaceholder')}
+                className={isAr ? "pr-10" : "pl-10"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full py-6 font-bold"
+            variant="gradient"
+            disabled={loading}
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('login')}
+          </Button>
+
           <p className="text-center text-sm text-white/50">
-            {language === 'ar' ? 'ليس لديك حساب؟ ' : 'Pas encore de compte ? '}
-            <Link href="/auth/register" className="text-indigo-400 hover:text-indigo-300 font-semibold transition-colors">
-              {language === 'ar' ? 'إنشاء حساب' : "S'inscrire"}
+            {t('noAccount')}{' '}
+            <Link
+              href="/auth/register"
+              className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors underline underline-offset-4"
+            >
+              {t('signUp')}
             </Link>
           </p>
-        </div>
-
-        {/* Back link */}
-        <p className="text-center mt-6 text-sm text-white/30">
-          <Link href="/modules" className="hover:text-white/60 transition-colors">
-            ← Retour aux modules
-          </Link>
-        </p>
+        </form>
       </div>
     </div>
   )

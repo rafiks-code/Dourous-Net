@@ -5,13 +5,14 @@ import { useEffect, useState } from 'react'
 import { MODULES_BY_LEVEL_FILIERE, MODULE_ICONS, MODULE_ARABIC, FILIERE_ARABIC, STORAGE_KEYS, type Level, type Filiere } from '@/lib/constants'
 import { getFromStorage } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
-import { ArrowLeft, Search, BookOpen, Lock } from 'lucide-react'
+import { Search, BookOpen, Lock } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
 export default function ModulesPage() {
   const router = useRouter()
-  const { language } = useLanguage()
+  const { language, t } = useLanguage()
   const [level, setLevel] = useState<Level | null>(null)
   const [filiere, setFiliere] = useState<Filiere | null>(null)
   const [search, setSearch] = useState('')
@@ -22,13 +23,11 @@ export default function ModulesPage() {
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL) as Level
     const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
 
-    // Check auth first to avoid infinite redirect loop
     const supabase = createClient()
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsLoggedIn(!!user)
       
       if (user) {
-        // If logged in, get level/filiere from their profile
         const userLevel = user.user_metadata?.level as Level
         const userFiliere = user.user_metadata?.filiere as Filiere
         
@@ -36,7 +35,6 @@ export default function ModulesPage() {
         if (userFiliere) setFiliere(userFiliere)
         
       } else {
-        // If not logged in, rely on local storage or redirect
         if (!storedLevel) { router.push('/level'); return }
         if (!storedFiliere) { router.push('/filiere'); return }
         
@@ -65,7 +63,7 @@ export default function ModulesPage() {
 
   return (
     <div
-      className={`page-container ${isAr ? 'rtl' : ''}`}
+      className="page-container"
       dir={isAr ? 'rtl' : 'ltr'}
     >
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -73,10 +71,7 @@ export default function ModulesPage() {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto">
-
-
-        {/* Header */}
-        <div className={`flex items-start justify-between mb-8 flex-wrap gap-4 ${isAr ? 'flex-row-reverse' : ''}`}>
+        <div className={cn("flex items-start justify-between mb-8 flex-wrap gap-4", isAr ? "flex-row-reverse" : "flex-row")}>
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-medium">
@@ -84,47 +79,42 @@ export default function ModulesPage() {
               </span>
               <span className="text-white/30">·</span>
               <span className="px-3 py-1 rounded-full bg-violet-500/20 border border-violet-500/30 text-violet-300 text-sm font-medium">
-                {language === 'ar' && filiere ? FILIERE_ARABIC[filiere] || filiere : filiere}
+                {isAr && filiere ? FILIERE_ARABIC[filiere] || filiere : filiere}
               </span>
             </div>
             <h1 className="text-3xl md:text-4xl font-black">
-              <span className="gradient-text">{language === 'ar' ? 'وحداتك' : 'Vos Modules'}</span>
+              <span className="gradient-text">{t('myModules')}</span>
             </h1>
             <p className="text-white/50 mt-1">
-              {language === 'ar' ? 'اختر وحدة للوصول إلى الدروس' : 'Choisissez un module pour accéder aux cours'}
+              {t('chooseModuleDesc')}
             </p>
           </div>
           <BookOpen className="w-10 h-10 text-indigo-400/50" />
         </div>
 
-        {/* Search */}
         <div className="relative mb-8">
-          <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 ${isAr ? 'right-4' : 'left-4'}`} />
+          <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30", isAr ? "right-4" : "left-4")} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={language === 'ar' ? 'ابحث عن وحدة...' : 'Rechercher un module...'}
-            className={`w-full h-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-white/8 transition-all ${isAr ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4'}`}
+            placeholder={t('searchPlaceholder')}
+            className={cn("w-full h-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-indigo-500/50 focus:bg-white/8 transition-all", isAr ? "pr-10 pl-4 text-right" : "pl-10 pr-4")}
           />
         </div>
 
-        {/* Auth notice */}
         {!isLoggedIn && (
           <div className="mb-6 flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm">
             <Lock className="w-4 h-4 flex-shrink-0" />
             <span>
-              {isAr
-                ? 'يجب تسجيل الدخول للوصول إلى محتوى المادة'
-                : 'Connectez-vous pour accéder au contenu des modules'}
+              {t('loginRequiredDesc')}
             </span>
             <Link href="/auth/login" className="ml-auto font-semibold underline hover:text-amber-200 transition-colors flex-shrink-0">
-              {isAr ? 'دخول' : 'Se connecter'}
+              {t('login')}
             </Link>
           </div>
         )}
 
-        {/* Modules grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filtered.map((moduleName, i) => {
             const icon = MODULE_ICONS[moduleName] ?? '📘'
@@ -134,23 +124,22 @@ export default function ModulesPage() {
                 id={`module-${moduleName.toLowerCase().replace(/\s+/g, '-')}`}
                 onClick={() => handleModuleClick(moduleName)}
                 className="group relative choice-card text-left animate-fade-in-up"
-                style={{ animationDelay: `${i * 0.05}s`, opacity: 0 }}
+                style={{ animationDelay: `${i * 0.05}s`, opacity: 1 }}
               >
-                <div className="flex items-start gap-4">
+                <div className={cn("flex items-start gap-4", isAr ? "flex-row-reverse text-right" : "flex-row text-left")}>
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/30 to-violet-500/20 flex items-center justify-center text-2xl flex-shrink-0 border border-white/10 group-hover:from-indigo-500/40 group-hover:to-violet-500/30 transition-all">
                     {icon}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-bold text-white text-sm leading-tight">
-                      {language === 'ar' ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName}
+                      {isAr ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName}
                     </p>
                     <p className="text-white/40 text-[10px] mt-1.5">
-                      {isLoggedIn ? (isAr ? 'انقر للوصول' : 'Cliquer pour accéder') : (isAr ? 'يتطلب تسجيل دخول' : 'Connexion requise')}
+                      {isLoggedIn ? t('clickToAccess') : t('loginRequiredShort')}
                     </p>
                   </div>
                   {!isLoggedIn && <Lock className="w-3.5 h-3.5 text-white/20 flex-shrink-0 mt-0.5" />}
                 </div>
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500/0 to-violet-500/0 group-hover:from-indigo-500/5 group-hover:to-violet-500/5 transition-all pointer-events-none" />
               </button>
             )
           })}
@@ -160,20 +149,17 @@ export default function ModulesPage() {
           <div className="text-center py-20 text-white/30">
             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>
-              {modules.length === 0 
-                ? `Niveau: ${level}, Filière: ${filiere} - Aucun module trouvé`
-                : (language === 'ar' ? 'لا توجد وحدات' : 'Aucun module trouvé')}
+              {t('noData')}
             </p>
           </div>
         )}
 
-        {/* Step indicator */}
         <div className="flex justify-center mt-12 gap-2">
           {[1, 2, 3, 4].map((step) => (
-            <div key={step} className={`h-1.5 rounded-full transition-all ${step <= 3 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20'}`} />
+            <div key={step} className={cn("h-1.5 rounded-full transition-all", step <= 3 ? 'w-8 bg-indigo-500' : 'w-4 bg-white/20')} />
           ))}
         </div>
-        <p className="text-center text-white/30 text-xs mt-2">{isAr ? 'الخطوة ٣ من ٤' : 'Étape 3 sur 4'}</p>
+        <p className="text-center text-white/30 text-xs mt-2">{t('step')} 3 {t('of')} 4</p>
       </div>
     </div>
   )

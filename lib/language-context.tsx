@@ -1,55 +1,43 @@
 'use client'
-
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { translations } from './translations'
 
-type LanguageContextType = {
-  language: 'fr' | 'ar'
-  setLanguage: (lang: 'fr' | 'ar') => void
+type Language = 'fr' | 'ar'
+
+interface LanguageContextType {
+  language: Language
+  setLanguage: (lang: Language) => void
   t: (key: string) => string
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
+const LanguageContext = createContext<LanguageContextType>({
+  language: 'fr',
+  setLanguage: () => {},
+  t: (key) => key,
+})
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<'fr' | 'ar'>('fr')
-  const [mounted, setMounted] = useState(false)
+export function LanguageProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>('fr')
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('dourous-lang') as 'fr' | 'ar'
-    if (savedLang) {
-      setLanguageState(savedLang)
-      document.documentElement.dir = savedLang === 'ar' ? 'rtl' : 'ltr'
-      document.documentElement.lang = savedLang
-      if (savedLang === 'ar') {
-        document.body.style.fontFamily = 'var(--font-cairo), sans-serif'
-      } else {
-        document.body.style.fontFamily = 'var(--font-inter), sans-serif'
-      }
+    const saved = localStorage.getItem('dourous-lang') as Language
+    if (saved === 'fr' || saved === 'ar') {
+      setLanguageState(saved)
+      document.documentElement.dir = saved === 'ar' ? 'rtl' : 'ltr'
+      document.documentElement.lang = saved
     }
-    setMounted(true)
   }, [])
 
-  const setLanguage = (lang: 'fr' | 'ar') => {
+  const setLanguage = (lang: Language) => {
     setLanguageState(lang)
     localStorage.setItem('dourous-lang', lang)
-    
-    // Apply RTL and Font
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
     document.documentElement.lang = lang
-    if (lang === 'ar') {
-      document.body.style.fontFamily = 'var(--font-cairo), sans-serif'
-    } else {
-      document.body.style.fontFamily = 'var(--font-inter), sans-serif'
-    }
   }
 
-  const t = (key: string) => {
-    return translations[language]?.[key] || translations['fr']?.[key] || key
-  }
-
-  if (!mounted) {
-    return <div className="invisible">{children}</div>
+  const t = (key: string): string => {
+    const langTranslations = translations[language] as Record<string, string>
+    return langTranslations?.[key] ?? translations['fr'][key as keyof typeof translations['fr']] ?? key
   }
 
   return (
@@ -60,13 +48,5 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useLanguage() {
-  const context = useContext(LanguageContext)
-  if (!context) {
-    return {
-      language: 'fr',
-      setLanguage: () => {},
-      t: (key: string) => key,
-    }
-  }
-  return context
+  return useContext(LanguageContext)
 }

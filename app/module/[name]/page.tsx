@@ -10,9 +10,10 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
   Download, Upload, FileText, CheckCircle2,
-  Clock, ArrowLeft, AlertCircle, Loader2, BookOpen, ClipboardList
+  Clock, ArrowLeft, ArrowRight, AlertCircle, Loader2, BookOpen, ClipboardList
 } from 'lucide-react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 
 interface Course {
   id: string
@@ -64,29 +65,26 @@ export default function ModulePage() {
     if (!user) { router.push('/auth/login'); return }
     setUserId(user.id)
 
-    // Load courses
     const { data: coursesData } = await supabase
-      .from('courses')
+      .from('lessons')
       .select('*')
-      .eq('module', moduleName)
+      .eq('subject', moduleName)
       .order('created_at', { ascending: false })
     setCourses(coursesData ?? [])
 
-    // Load homework
     const { data: hwData } = await supabase
       .from('homework')
       .select('*')
-      .eq('module', moduleName)
+      .eq('subject', moduleName)
       .order('due_date', { ascending: true })
     setHomework(hwData ?? [])
 
-    // Load student sessions
     const { data: sessionsData } = await supabase
-      .from('sessions')
-      .select('*')
+      .from('submissions')
+      .select('*, homework(title)')
       .eq('student_id', user.id)
-      .eq('module', moduleName)
-      .order('created_at', { ascending: false })
+      .eq('homework.subject', moduleName)
+      .order('submitted_at', { ascending: false })
     setSessions(sessionsData ?? [])
 
     setLoading(false)
@@ -119,13 +117,12 @@ export default function ModulePage() {
     const supabase = createClient()
     const fileName = `${userId}/${moduleName}/${Date.now()}_${file.name}`
 
-    // Simulate progress
     const progressInterval = setInterval(() => {
       setUploadProgress((prev) => Math.min(prev + 10, 85))
     }, 200)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('devoirs')
+      .from('submissions')
       .upload(fileName, file, { cacheControl: '3600', upsert: false })
 
     clearInterval(progressInterval)
@@ -139,16 +136,14 @@ export default function ModulePage() {
 
     setUploadProgress(90)
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage.from('devoirs').getPublicUrl(uploadData.path)
+    const { data: { publicUrl } } = supabase.storage.from('submissions').getPublicUrl(uploadData.path)
 
-    // Save session record
-    const { error: sessionError } = await supabase.from('sessions').insert({
+    const { error: sessionError } = await supabase.from('submissions').insert({
       student_id: userId,
-      module: moduleName,
-      status: 'soumis',
+      homework_id: homework[0]?.id, // Default to first available if none selected
       file_url: publicUrl,
-      date: new Date().toISOString(),
+      status: 'soumis',
+      submitted_at: new Date().toISOString(),
     })
 
     setUploadProgress(100)
@@ -156,7 +151,7 @@ export default function ModulePage() {
     if (sessionError) {
       setUploadMsg(`Erreur d'enregistrement: ${sessionError.message}`)
     } else {
-      setUploadMsg(language === 'ar' ? '✅ تم رفع الملف بنجاح!' : '✅ Devoir soumis avec succès!')
+      setUploadMsg(t('success'))
       await loadData()
     }
 
@@ -173,19 +168,17 @@ export default function ModulePage() {
   }
 
   return (
-    <div className={`page-container max-w-4xl mx-auto ${language === 'ar' ? 'rtl' : ''}`} dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="page-container max-w-4xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-900/15 rounded-full blur-3xl" />
       </div>
 
       <div className="relative z-10">
-        {/* Back */}
         <Link href="/modules" className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 text-sm mb-8 transition-colors">
-          <ArrowLeft className={`w-4 h-4 ${language === 'ar' ? 'rotate-180' : ''}`} />
-          {language === 'ar' ? 'العودة إلى الوحدات' : 'Retour aux modules'}
+          {language === 'ar' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
+          {t('back')}
         </Link>
 
-        {/* Module header */}
         <div className="mb-4 flex items-center gap-2">
           {level && (
             <span className="px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-sm font-medium">
@@ -200,7 +193,7 @@ export default function ModulePage() {
           )}
         </div>
         
-        <div className={`flex items-center gap-4 mb-10 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+        <div className={cn("flex items-center gap-4 mb-10", language === 'ar' ? "flex-row-reverse" : "flex-row")}>
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-500/20 flex items-center justify-center text-3xl border border-white/10 flex-shrink-0">
             {icon}
           </div>
@@ -209,26 +202,23 @@ export default function ModulePage() {
               {displayName}
             </h1>
             <p className="text-white/50 text-sm mt-1">
-              {courses.length} {language === 'ar' ? 'دروس' : 'cours'} · {homework.length} {language === 'ar' ? 'واجبات' : 'devoirs'}
+              {courses.length} {t('lessons')} · {homework.length} {t('homework')}
             </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column: Courses + Homework */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Courses */}
             <section className="glass-card p-6">
-              <div className={`flex items-center gap-3 mb-5 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={cn("flex items-center gap-3 mb-5", language === 'ar' ? "flex-row-reverse" : "flex-row")}>
                 <BookOpen className="w-5 h-5 text-indigo-400" />
-                <h2 className="text-lg font-bold">{language === 'ar' ? 'الدروس المتاحة' : 'Cours disponibles'}</h2>
-                <Badge variant="info" className="ml-auto">{courses.length}</Badge>
+                <h2 className="text-lg font-bold">{t('lessons')}</h2>
               </div>
 
               {courses.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{language === 'ar' ? 'لا توجد دروس متاحة' : 'Aucun cours disponible'}</p>
+                  <p className="text-sm">{t('noLessons')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -246,10 +236,9 @@ export default function ModulePage() {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
                       >
                         <Download className="w-3.5 h-3.5" />
-                        {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
+                        {t('openDocument')}
                       </a>
                     </div>
                   ))}
@@ -257,18 +246,16 @@ export default function ModulePage() {
               )}
             </section>
 
-            {/* Homework list */}
             <section className="glass-card p-6">
-              <div className={`flex items-center gap-3 mb-5 ${language === 'ar' ? 'flex-row-reverse' : ''}`}>
+              <div className={cn("flex items-center gap-3 mb-5", language === 'ar' ? "flex-row-reverse" : "flex-row")}>
                 <ClipboardList className="w-5 h-5 text-violet-400" />
-                <h2 className="text-lg font-bold">{language === 'ar' ? 'الواجبات' : 'Devoirs'}</h2>
-                <Badge variant="warning" className="ml-auto">{homework.length}</Badge>
+                <h2 className="text-lg font-bold">{t('homework')}</h2>
               </div>
 
               {homework.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">{language === 'ar' ? 'لا توجد واجبات' : 'Aucun devoir'}</p>
+                  <p className="text-sm">{t('noHomework')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -281,7 +268,7 @@ export default function ModulePage() {
                         <p className="text-sm font-medium text-white truncate">{hw.title}</p>
                         <p className="text-xs text-amber-400/80 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
-                          {language === 'ar' ? 'الموعد:' : 'Rendu le'} {formatDate(hw.due_date)}
+                          {t('deadline')} : {formatDate(hw.due_date)}
                         </p>
                       </div>
                       <a
@@ -291,7 +278,7 @@ export default function ModulePage() {
                         className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 font-medium px-3 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 transition-all flex-shrink-0"
                       >
                         <Download className="w-3.5 h-3.5" />
-                        {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
+                        {t('viewHomework')}
                       </a>
                     </div>
                   ))}
@@ -300,13 +287,11 @@ export default function ModulePage() {
             </section>
           </div>
 
-          {/* Right column: Upload + Sessions */}
           <div className="space-y-6">
-            {/* Upload */}
             <section className="glass-card p-6">
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-400" />
-                {language === 'ar' ? 'رفع واجب' : 'Soumettre un devoir'}
+                {t('submitWork')}
               </h2>
 
               <div
@@ -315,9 +300,8 @@ export default function ModulePage() {
               >
                 <Upload className="w-8 h-8 mx-auto mb-2 text-white/20 group-hover:text-indigo-400 transition-colors" />
                 <p className="text-sm text-white/50 group-hover:text-white/70">
-                  {language === 'ar' ? 'انقر لاختيار ملف PDF' : 'Cliquer pour choisir un PDF'}
+                  {t('searchPlaceholder')}
                 </p>
-                <p className="text-xs text-white/30 mt-1">Max 10 Mo</p>
               </div>
 
               <input
@@ -332,7 +316,7 @@ export default function ModulePage() {
               {uploading && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-xs text-white/60">
-                    <span>{language === 'ar' ? 'جارٍ الرفع...' : 'Upload en cours...'}</span>
+                    <span>{t('loading')}</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} />
@@ -340,40 +324,39 @@ export default function ModulePage() {
               )}
 
               {uploadMsg && (
-                <div className={`mt-3 flex items-center gap-2 text-xs p-2 rounded-lg ${uploadMsg.startsWith('✅') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                  {uploadMsg.startsWith('✅') ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
+                <div className={cn("mt-3 flex items-center gap-2 text-xs p-2 rounded-lg", uploadMsg.includes('✅') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}>
+                  {uploadMsg.includes('✅') ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
                   {uploadMsg}
                 </div>
               )}
             </section>
 
-            {/* My submissions */}
             <section className="glass-card p-6">
               <h2 className="text-base font-bold mb-4 text-white/80">
-                {language === 'ar' ? 'تسليماتي' : 'Mes soumissions'}
+                {t('mySubmissions')}
               </h2>
               {sessions.length === 0 ? (
                 <p className="text-xs text-white/30 text-center py-4">
-                  {language === 'ar' ? 'لم ترفع أي واجب بعد' : 'Aucune soumission'}
+                  {t('noSubmissions')}
                 </p>
               ) : (
                 <div className="space-y-2">
                   {sessions.map((s) => (
                     <div key={s.id} className="p-3 rounded-lg bg-white/5 border border-white/5">
                       <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs text-white/50">{formatDate(s.date)}</p>
+                        <p className="text-xs text-white/50">{formatDate(s.submitted_at || s.date)}</p>
                         <Badge
-                          variant={s.status === 'corrigé' ? 'success' : s.status === 'soumis' ? 'info' : 'warning'}
+                          variant={s.status === 'corrigé' || s.status === 'corrected' ? 'success' : s.status === 'soumis' || s.status === 'submitted' ? 'info' : 'warning'}
                           className="text-xs"
                         >
-                          {s.status}
+                          {t(s.status) || s.status}
                         </Badge>
                       </div>
                       {s.file_url && (
                         <a href={s.file_url} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mt-1">
                           <FileText className="w-3 h-3" />
-                          {language === 'ar' ? 'فتح الملف' : 'Ouvrir le document'}
+                          {t('openDocument')}
                         </a>
                       )}
                     </div>

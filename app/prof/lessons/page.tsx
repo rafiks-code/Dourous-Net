@@ -1,195 +1,291 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, Plus, Loader2, FileText, Trash2 } from 'lucide-react'
+import { BookOpen, Plus, Loader2, FileText, Trash2, CheckCircle2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useLanguage } from '@/lib/language-context'
-import { LEVELS, FILIERES_BY_LEVEL, type Level, type Filiere, MODULE_ICONS, FILIERE_ARABIC } from '@/lib/constants'
 import PDFUpload from '@/components/PDFUpload'
+import { cn } from '@/lib/utils'
+
+interface Lesson {
+  id: string
+  title: string
+  content: string
+  subject: string
+  file_url: string
+  prof_id: string
+  created_at: string
+}
 
 export default function ProfLessonsPage() {
   const supabase = createClient()
   const { t, language } = useLanguage()
-  const [lessons, setLessons] = useState<any[]>([])
+  const [lessons, setLessons] = useState<Lesson[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [showForm, setShowForm] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
   
-  const [form, setForm] = useState({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
+  const [form, setForm] = useState({ title: '', subject: '', description: '', pdfUrl: '' })
 
-  useEffect(() => {
-    loadLessons()
-  }, [])
-
-  async function loadLessons() {
+  const loadLessons = useCallback(async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('lessons')
       .select('*')
       .eq('prof_id', user.id)
       .order('created_at', { ascending: false })
 
-    if (data) setLessons(data)
+    if (error) {
+      console.error('Error loading lessons:', error)
+    } else {
+      setLessons(data ?? [])
+    }
     setLoading(false)
-  }
+  }, [supabase])
+
+  useEffect(() => {
+    loadLessons()
+  }, [loadLessons])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
-
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { error: insertError } = await supabase.from('lessons').insert({
-      title: form.title,
-      content: form.description || '',
-      subject: form.subject,
-      file_url: form.pdfUrl,
-      prof_id: user.id,
-      level: form.level || null,
-      filiere: form.filiere || null,
-    }).select()
-
-    if (insertError) {
-      console.error('Insert error:', insertError)
-      setError('Erreur sauvegarde: ' + insertError.message)
-      setSubmitting(false)
+    if (!form.pdfUrl) {
+      setError(t('pleaseUploadPDF'))
       return
     }
+    
+    setSubmitting(true)
+    setError('')
+    setSuccess(false)
 
-    setForm({ title: '', description: '', subject: '', pdfUrl: '', level: '', filiere: '' })
-    setShowForm(false)
-    await loadLessons()
-    setSubmitting(false)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const { error: insertError } = await supabase
+        .from('lessons')
+        .insert({
+          title: form.title,
+          content: form.description,
+          subject: form.subject,
+          file_url: form.pdfUrl,
+          prof_id: user.id,
+          created_at: new Date().toISOString()
+        })
+
+      if (insertError) throw insertError
+
+      setSuccess(true)
+      setForm({ title: '', subject: '', description: '', pdfUrl: '' })
+      await loadLessons()
+      
+      setTimeout(() => setSuccess(false), 3000)
+    } catch (err: any) {
+      console.error('Insert error:', err)
+      setError(err.message || t('error'))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('confirmDeleteLesson'))) return
-    await supabase.from('lessons').delete().eq('id', id)
-    loadLessons()
+  const handleDelete = async (id: string, fileUrl: string) => {
+    if (!confirm(t('deleteConfirm'))) return
+
+    try {
+      const fileName = fileUrl.split('/').pop()
+      if (fileName) {
+        await supabase.storage.from('lessons').remove([fileName])
+      }
+
+      const { error } = await supabase
+        .from('lessons')
+        .delete()
+        .eq('id', id)
+
+      if (error) throw error
+
+      await loadLessons()
+    } catch (err: any) {
+      console.error('Delete error:', err)
+      alert(t('error'))
+    }
   }
 
   return (
-    <div className="page-container max-w-5xl mx-auto py-12" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-black gradient-text flex items-center gap-3">
-            <BookOpen className="w-8 h-8 text-emerald-400" />
-            {t('lessonsManagement')}
-          </h1>
-          <p className="text-white/50 mt-1">{t('publishNewLessons')}</p>
-        </div>
-        <Button variant="gradient" onClick={() => setShowForm(!showForm)}>
-          <Plus className="w-4 h-4 mr-2" />
-          {t('newLesson')}
-        </Button>
-      </div>
+    <div className="page-container max-w-7xl mx-auto" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <header className="mb-10 animate-fade-slide-up">
+        <h1 className="text-4xl font-black gradient-text flex items-center gap-3">
+          <BookOpen className="w-10 h-10 text-indigo-400" />
+          {t('manageLessons')}
+        </h1>
+        <p className="text-white/50 mt-2">
+          {t('manageLessonsDesc')}
+        </p>
+      </header>
 
-      {showForm && (
-        <div className="glass-card p-6 mb-8 animate-scale-in border-emerald-500/20 border">
-          <h2 className="text-xl font-bold mb-4">{t('newLesson')}</h2>
-          
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-              {error}
-            </div>
-          )}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-5 animate-fade-slide-up stagger-1">
+          <div className="glass-card p-8 border-indigo-500/20 border sticky top-24">
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-indigo-400" />
+              {t('newLesson')}
+            </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>{t('lessonTitle')}</Label>
-              <Input 
-                value={form.title} 
-                onChange={e => setForm({...form, title: e.target.value})} 
-                placeholder={t('lessonTitlePlaceholder')}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label>{language === 'ar' ? 'المستوى' : 'Niveau'}</Label>
-                <select value={form.level} onChange={e => setForm({...form, level: e.target.value, filiere: ''})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                  <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'الكل' : 'Tous'}</option>
-                  {LEVELS.map(l => <option key={l} value={l} className="bg-[#0d0d25]">{l}</option>)}
-                </select>
+                <Label htmlFor="title">{t('lessonTitle')}</Label>
+                <Input
+                  id="title"
+                  value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                  placeholder={t('lessonTitle') + '...'}
+                  required
+                  className="bg-white/5 border-white/10"
+                />
               </div>
+
               <div className="space-y-2">
-                <Label>{language === 'ar' ? 'الشعبة' : 'Filière'}</Label>
-                <select value={form.filiere} onChange={e => setForm({...form, filiere: e.target.value})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" disabled={!form.level}>
-                  <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'الكل' : 'Toutes'}</option>
-                  {form.level && FILIERES_BY_LEVEL[form.level as Level].map(f => <option key={f} value={f} className="bg-[#0d0d25]">{language === 'ar' ? (FILIERE_ARABIC[f as Filiere] || f) : f}</option>)}
-                </select>
+                <Label htmlFor="subject">{t('subject')}</Label>
+                <Input
+                  id="subject"
+                  value={form.subject}
+                  onChange={e => setForm({ ...form, subject: e.target.value })}
+                  placeholder={t('subject') + '...'}
+                  required
+                  className="bg-white/5 border-white/10"
+                />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>{language === 'ar' ? 'المادة' : 'Matière'}</Label>
-              <select value={form.subject} onChange={e => setForm({...form, subject: e.target.value})} className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" required>
-                <option value="" className="bg-[#0d0d25]">{language === 'ar' ? 'اختر المادة' : 'Sélectionner une matière'}</option>
-                {Object.keys(MODULE_ICONS).map(m => <option key={m} value={m} className="bg-[#0d0d25]">{m}</option>)}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <Label>{language === 'ar' ? 'الوصف' : 'Description'}</Label>
-              <textarea 
-                className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px]"
-                value={form.description} 
-                onChange={e => setForm({...form, description: e.target.value})} 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>{t('lessonPdf')}</Label>
-              <PDFUpload 
-                bucket="lessons" 
-                onUpload={(url) => setForm({...form, pdfUrl: url})}
-                language={language}
-              />
-              {form.pdfUrl && (
-                <p className="text-green-400 text-sm mt-1">
-                  ✅ {language === 'ar' ? 'تم رفع الملف بنجاح' : 'Fichier téléchargé avec succès'}
-                </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">{t('homeworkDesc')}</Label>
+                <textarea
+                  id="description"
+                  value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  className="w-full min-h-[100px] bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  placeholder={t('descriptionPlaceholder')}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('lessonPDF')}</Label>
+                <PDFUpload 
+                  bucket="lessons" 
+                  onUpload={url => setForm({ ...form, pdfUrl: url })}
+                />
+              </div>
+
+              {error && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </div>
               )}
-            </div>
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="ghost" onClick={() => setShowForm(false)}>{t('cancel')}</Button>
-              <Button type="submit" variant="gradient" disabled={submitting}>
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : t('publish')}
-              </Button>
-            </div>
-          </form>
-        </div>
-      )}
 
-      {loading ? (
-        <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-emerald-400" /></div>
-      ) : lessons.length === 0 ? (
-        <div className="glass-card p-16 text-center text-white/50">
-          {t('noLessonsDesc')}
+              {success && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm animate-scale-in">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  {t('lessonPublished')}
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                variant="gradient"
+                className="w-full py-6 font-bold text-lg shadow-lg shadow-indigo-500/20"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  t('publish')
+                )}
+              </Button>
+            </form>
+          </div>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {lessons.map(lesson => (
-            <div key={lesson.id} className="glass-card p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-white mb-2">{lesson.title}</h3>
-              {lesson.level && <p className="text-xs text-white/50 mb-2">{lesson.level} {lesson.filiere}</p>}
-              <a href={lesson.file_url || lesson.content} target="_blank" rel="noreferrer" className="text-sm text-emerald-400 flex items-center gap-2 mb-4 hover:underline">
-                <FileText className="w-4 h-4" /> {t('openDocument')}
-              </a>
-              <div className="mt-auto pt-4 border-t border-white/10 flex justify-end">
-                <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-400/10" onClick={() => handleDelete(lesson.id)}>
-                  <Trash2 className="w-4 h-4 mr-2" /> {t('delete')}
-                </Button>
-              </div>
+
+        <div className="lg:col-span-7 space-y-4 animate-fade-slide-up stagger-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">{t('totalLessons')}</h2>
+            <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-xs font-bold border border-indigo-500/20">
+              {lessons.length}
+            </span>
+          </div>
+
+          {loading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="glass-card p-6 h-32 skeleton" />
+            ))
+          ) : lessons.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <BookOpen className="w-16 h-16 text-white/10 mx-auto mb-4 animate-float" />
+              <p className="text-white/40">{t('noLessonsProf')}</p>
             </div>
-          ))}
+          ) : (
+            lessons.map((lesson, index) => (
+              <div
+                key={lesson.id}
+                className="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group hover:border-indigo-500/40 transition-all duration-300 animate-fade-slide-up"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                    <FileText className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                        {lesson.subject}
+                      </span>
+                      <span className="text-[10px] text-white/30">
+                        {new Date(lesson.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-white truncate group-hover:text-indigo-300 transition-colors">
+                      {lesson.title}
+                    </h3>
+                    {lesson.content && (
+                      <p className="text-xs text-white/50 truncate max-w-md">
+                        {lesson.content}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                  <a
+                    href={lesson.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 md:flex-none"
+                  >
+                    <Button variant="secondary" size="sm" className="w-full gap-2 hover:bg-white/10">
+                      <FileText className="w-4 h-4" />
+                      {t('openDocument')}
+                    </Button>
+                  </a>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                    onClick={() => handleDelete(lesson.id, lesson.file_url)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

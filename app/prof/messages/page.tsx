@@ -1,193 +1,242 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { MessageSquare, Send, User, Loader2 } from 'lucide-react'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { MessageSquare, Send, User, Search, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { formatDate } from '@/lib/utils'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { cn } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
 
 export default function ProfMessagesPage() {
-  const supabase = createClient()
   const { t, language } = useLanguage()
-  const [currentUser, setCurrentUser] = useState<any>(null)
-  const [students, setStudents] = useState<any[]>([])
-  const [selectedStudent, setSelectedStudent] = useState<any>(null)
+  const [conversations, setConversations] = useState<any[]>([])
+  const [selectedContact, setSelectedContact] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const supabase = createClient()
 
   useEffect(() => {
-    async function load() {
+    async function init() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      setCurrentUser(user)
+      setUser(user)
 
-      const { data: studs } = await supabase.from('students').select('*').order('full_name')
-      if (studs) setStudents(studs)
-      
+      if (user) {
+        const { data: contacts } = await supabase
+          .from('students')
+          .select('*')
+          .order('full_name')
+        
+        setConversations(contacts || [])
+      }
       setLoading(false)
     }
-    load()
-  }, [])
+    init()
+  }, [supabase])
 
   useEffect(() => {
-    if (!selectedStudent || !currentUser) return
+    if (selectedContact && user) {
+      const fetchMessages = async () => {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedContact.id}),and(sender_id.eq.${selectedContact.id},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: true })
+        
+        setMessages(data || [])
+        scrollToBottom()
+      }
 
-    async function loadMessages() {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedStudent.id}),and(sender_id.eq.${selectedStudent.id},receiver_id.eq.${currentUser.id})`)
-        .order('sent_at', { ascending: true })
+      fetchMessages()
 
-      if (data) setMessages(data)
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on('postgres_changes', 
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'messages',
+            filter: `receiver_id=eq.${user.id}`
+          }, 
+          (payload) => {
+            if (payload.new.sender_id === selectedContact.id) {
+              setMessages(prev => [...prev, payload.new])
+              scrollToBottom()
+            }
+          }
+        )
+        .subscribe()
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
+  }, [selectedContact, user, supabase])
 
-    loadMessages()
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }
 
-    const channel = supabase.channel('prof-messages')
-      .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          setMessages(prev => {
-            if (prev.find(m => m.id === payload.new.id || (m.content === payload.new.content && m.sender_id === payload.new.sender_id))) return prev;
-            return [...prev, payload.new];
-          });
-        }
-      ).subscribe()
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [selectedStudent, currentUser, supabase])
-
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newMessage.trim() || !selectedStudent) return
+    if (!newMessage.trim() || !selectedContact || !user || sending) return
 
-    const msg = {
-      sender_id: currentUser.id,
-      receiver_id: selectedStudent.id,
-      content: newMessage,
+    setSending(true)
+    const { data, error } = await supabase
+      .from('messages')
+      .insert({
+        sender_id: user.id,
+        receiver_id: selectedContact.id,
+        content: newMessage.trim()
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      setMessages(prev => [...prev, data])
+      setNewMessage('')
+      scrollToBottom()
     }
-
-    setNewMessage('')
-    setMessages(prev => [...prev, { ...msg, id: Date.now(), sent_at: new Date().toISOString() }])
-    await supabase.from('messages').insert([msg])
+    setSending(false)
   }
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
+    return <div className="flex justify-center p-12 text-white/50">{t('loading')}</div>
   }
 
   return (
-    <div className="page-container max-w-6xl mx-auto h-[calc(100vh-6rem)] py-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
-      <div className="flex flex-col h-full space-y-4">
-        <div>
-          <h1 className="text-2xl font-black gradient-text flex items-center gap-3">
-            <MessageSquare className="w-6 h-6 text-indigo-400" />
-            {t('studentMessages')}
-          </h1>
+    <div className="page-container h-[calc(100vh-120px)] max-w-6xl mx-auto flex flex-col" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="flex flex-1 glass-card overflow-hidden border-white/5">
+        {/* Sidebar */}
+        <div className={cn(
+          "w-full sm:w-80 flex flex-col border-white/10",
+          language === 'ar' ? "border-l" : "border-r",
+          selectedContact ? "hidden sm:flex" : "flex"
+        )}>
+          <div className="p-4 border-b border-white/10">
+            <h2 className="text-xl font-bold mb-4">{t('messages')}</h2>
+            <div className="relative">
+              <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-white/30", language === 'ar' ? "right-3" : "left-3")} />
+              <Input 
+                placeholder={t('searchPlaceholder')}
+                className={cn("bg-white/5 border-white/10 pl-10", language === 'ar' ? "pr-10" : "pl-10")}
+              />
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto divide-y divide-white/5">
+            {conversations.map((contact) => (
+              <button
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
+                className={cn(
+                  "w-full p-4 flex items-center gap-3 transition-colors text-left",
+                  selectedContact?.id === contact.id ? "bg-indigo-500/10" : "hover:bg-white/5",
+                  language === 'ar' ? "text-right" : "text-left"
+                )}
+              >
+                <Avatar className="h-10 w-10 border border-white/10">
+                  <AvatarFallback className="bg-indigo-500/20 text-indigo-200">
+                    {contact.full_name?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white truncate">{contact.full_name}</p>
+                  <p className="text-xs text-white/40 truncate">{contact.level} • {contact.filiere}</p>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex-1 glass-card overflow-hidden flex flex-col md:flex-row">
-          {/* Sidebar */}
-          <div className={`w-full md:w-80 border-b md:border-b-0 ${language === 'ar' ? 'md:border-l' : 'md:border-r'} border-white/10 flex flex-col bg-white/5`}>
-            <div className="p-4 border-b border-white/10">
-              <Input placeholder={t('search')} className="bg-black/20 border-white/5" />
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-1">
-              {students.map(student => (
-                <button
-                  key={student.id}
-                  onClick={() => setSelectedStudent(student)}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all text-left ${
-                    selectedStudent?.id === student.id ? 'bg-indigo-500/20 text-white' : 'hover:bg-white/5 text-white/70'
-                  }`}
-                  dir={language === 'ar' ? 'rtl' : 'ltr'}
+        {/* Chat Area */}
+        <div className={cn(
+          "flex-1 flex flex-col bg-white/[0.01]",
+          !selectedContact ? "hidden sm:flex items-center justify-center text-center p-8" : "flex"
+        )}>
+          {selectedContact ? (
+            <>
+              {/* Chat Header */}
+              <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-white/[0.02]">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="sm:hidden"
+                  onClick={() => setSelectedContact(null)}
                 >
-                  <Avatar className="h-10 w-10 border border-white/10">
-                    <AvatarFallback className="bg-indigo-500/20 text-indigo-400">
-                      {student.full_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{student.full_name}</p>
-                    <p className="text-[10px] opacity-70 truncate">{student.level} - {student.filiere}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chat Area */}
-          <div className="flex-1 flex flex-col bg-[#07071a]/50">
-            {selectedStudent ? (
-              <>
-                <div className="p-4 border-b border-white/10 bg-white/5 flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-indigo-500/20 text-indigo-400">
-                      {selectedStudent.full_name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h3 className="font-bold text-white text-sm">{selectedStudent.full_name}</h3>
-                    <p className="text-xs text-white/50">{selectedStudent.level} • {selectedStudent.filiere}</p>
-                  </div>
+                  {language === 'ar' ? <Send className="w-5 h-5 rotate-180" /> : <Send className="w-5 h-5 rotate-180" />}
+                </Button>
+                <Avatar className="h-10 w-10 border border-white/10">
+                  <AvatarFallback className="bg-indigo-500/20 text-indigo-200">
+                    {selectedContact.full_name?.[0]?.toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-bold text-white">{selectedContact.full_name}</p>
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">{t('active')}</p>
                 </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
-                      <MessageSquare className="w-12 h-12 mb-3" />
-                      <p>{t('sendMessageTo')} {selectedStudent.full_name}</p>
-                    </div>
-                  ) : (
-                    messages.map(msg => {
-                      const isMe = msg.sender_id === currentUser?.id
-                      return (
-                        <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                          <div className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                            isMe ? 'bg-indigo-500 text-white rounded-br-none' : 'glass-card text-white/90 rounded-bl-none'
-                          }`}>
-                            <p className="text-sm">{msg.content}</p>
-                          </div>
-                          <span className="text-[10px] text-white/30 mt-1 px-1">
-                            {formatDate(msg.sent_at)}
-                          </span>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-
-                <div className="p-4 bg-white/5 border-t border-white/10">
-                  <form onSubmit={handleSend} className="flex gap-2">
-                    <Input
-                      value={newMessage}
-                      onChange={e => setNewMessage(e.target.value)}
-                      placeholder={t('typeMessage')}
-                      className="flex-1 bg-black/20"
-                    />
-                    <Button type="submit" variant="gradient" size="icon" disabled={!newMessage.trim()}>
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 p-6">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-4">
-                  <User className="w-10 h-10" />
-                </div>
-                <h3 className="text-xl font-medium text-white mb-2">{t('selectStudentTitle')}</h3>
-                <p className="text-sm">{t('selectStudentDesc')}</p>
               </div>
-            )}
-          </div>
+
+              {/* Messages Container */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {messages.map((msg) => {
+                  const isOwn = msg.sender_id === user.id
+                  return (
+                    <div 
+                      key={msg.id} 
+                      className={cn(
+                        "flex flex-col max-w-[80%]",
+                        isOwn ? (language === 'ar' ? "mr-auto items-start" : "ml-auto items-end") : (language === 'ar' ? "ml-auto items-end" : "mr-auto items-start")
+                      )}
+                    >
+                      <div className={cn(
+                        "p-3 rounded-2xl text-sm",
+                        isOwn 
+                          ? "bg-indigo-600 text-white rounded-br-none" 
+                          : "bg-white/10 text-white rounded-bl-none"
+                      )}>
+                        {msg.content}
+                      </div>
+                      <span className="text-[9px] text-white/30 mt-1">
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  )
+                })}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Area */}
+              <form onSubmit={handleSendMessage} className="p-4 border-t border-white/10 bg-white/[0.02]">
+                <div className="flex gap-2">
+                  <Input 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder={t('typeMessage')}
+                    className="bg-white/5 border-white/10"
+                    disabled={sending}
+                  />
+                  <Button type="submit" variant="gradient" size="icon" disabled={!newMessage.trim() || sending}>
+                    <Send className={cn("w-4 h-4", language === 'ar' ? "rotate-180" : "")} />
+                  </Button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div className="w-20 h-20 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto border border-indigo-500/20">
+                <MessageSquare className="w-10 h-10 text-indigo-400" />
+              </div>
+              <h3 className="text-xl font-bold">{t('messages')}</h3>
+              <p className="text-white/40 max-w-xs">{t('selectConversation')}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

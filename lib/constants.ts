@@ -2,8 +2,8 @@ export const LEVELS = ['1AS', '2AS', '3AS'] as const
 export type Level = typeof LEVELS[number]
 
 export const FILIERES = [
-  'Scientifique',
-  'Lettres',
+  'TC Sciences',
+  'TC Lettres',
   'Sciences Expérimentales',
   'Mathématiques',
   'Lettres et Philosophie',
@@ -14,7 +14,7 @@ export const FILIERES = [
 export type Filiere = typeof FILIERES[number]
 
 export const FILIERES_BY_LEVEL: Record<string, string[]> = {
-  '1AS': ['Scientifique', 'Lettres'],
+  '1AS': ['TC Sciences', 'TC Lettres'],
   '2AS': ['Sciences Expérimentales', 'Mathématiques', 
           'Lettres et Philosophie', 'Langues Étrangères'],
   '3AS': ['Sciences Expérimentales', 'Mathématiques', 
@@ -24,13 +24,13 @@ export const FILIERES_BY_LEVEL: Record<string, string[]> = {
 
 export const MODULES_BY_LEVEL_FILIERE: Record<string, Record<string, string[]>> = {
   '1AS': {
-    'Scientifique': [
+    'TC Sciences': [
       'Mathématiques', 'Sciences Physiques', 'Sciences Naturelles',
       'Français', 'Arabe', 'Anglais', 'Histoire-Géographie',
       'Éducation Islamique', 'Éducation Civique', 
       'Informatique', 'Éducation Physique'
     ],
-    'Lettres': [
+    'TC Lettres': [
       'Langue Arabe', 'Langue Française', 'Langue Anglaise',
       'Histoire-Géographie', 'Philosophie', 'Éducation Islamique',
       'Éducation Civique', 'Mathématiques', 
@@ -143,8 +143,8 @@ export const MODULE_ARABIC: Record<string, string> = {
 }
 
 export const FILIERE_ARABIC: Record<string, string> = {
-  'Scientifique': 'علوم',
-  'Lettres': 'آداب',
+  'TC Sciences': 'جذع مشترك علوم',
+  'TC Lettres': 'جذع مشترك آداب',
   'Sciences Expérimentales': 'علوم تجريبية',
   'Mathématiques': 'رياضيات',
   'Technique Mathématique': 'تقني رياضي',

@@ -54,13 +54,13 @@ export default function DashboardPage() {
   }, [router, supabase])
 
   if (loading) {
-    return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>
+    return <div className="flex justify-center p-12 text-white/50">{t('loading')}</div>
   }
 
   const sessionList = sessions
-  const submitted = sessionList.filter((s) => s.status === 'soumis').length
-  const corrected = sessionList.filter((s) => s.status === 'corrigé').length
-  const pending = sessionList.filter((s) => s.status === 'en attente').length
+  const submitted = sessionList.filter((s) => s.status === 'soumis' || s.status === 'submitted').length
+  const corrected = sessionList.filter((s) => s.status === 'corrigé' || s.status === 'corrected').length
+  const pending = sessionList.filter((s) => s.status === 'en attente' || s.status === 'pending').length
 
   const fullName = student?.full_name || user?.user_metadata?.full_name || t('student')
   const level = student?.level || user?.user_metadata?.level || ''
@@ -71,20 +71,20 @@ export default function DashboardPage() {
     : user?.email?.[0]?.toUpperCase() ?? '?'
 
   const statusVariant = (status: string) => {
-    if (status === 'corrigé') return 'success'
-    if (status === 'soumis') return 'info'
+    if (status === 'corrigé' || status === 'corrected') return 'success'
+    if (status === 'soumis' || status === 'submitted') return 'info'
     return 'warning'
   }
 
   const statusIcon = (status: string) => {
-    if (status === 'corrigé') return <CheckCircle2 className="w-3.5 h-3.5" />
-    if (status === 'soumis') return <Clock className="w-3.5 h-3.5" />
+    if (status === 'corrigé' || status === 'corrected') return <CheckCircle2 className="w-3.5 h-3.5" />
+    if (status === 'soumis' || status === 'submitted') return <Clock className="w-3.5 h-3.5" />
     return <AlertCircle className="w-3.5 h-3.5" />
   }
 
   const getStatusText = (status: string) => {
-    if (status === 'corrigé') return t('corrected')
-    if (status === 'soumis') return t('submitted')
+    if (status === 'corrigé' || status === 'corrected') return t('corrected')
+    if (status === 'soumis' || status === 'submitted') return t('submitted')
     return t('pending')
   }
 
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           </Avatar>
           <div className="flex-1">
             <h1 className="text-3xl font-black gradient-text">
-              {t('welcome')}, {fullName}
+              {t('hello')}, {fullName}
             </h1>
             <p className="text-white/50 text-sm mt-1">{user?.email}</p>
             <div className="flex flex-wrap gap-2 mt-3">
@@ -124,7 +124,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className={`text-xs text-white/30 ${language === 'ar' ? 'text-left' : 'text-right'}`}>
-            <p>{t('activeSince')}</p>
+            <p>{t('memberSince')}</p>
             <p className="text-white/50">{user?.created_at ? formatDate(user.created_at) : '—'}</p>
           </div>
         </div>
@@ -156,25 +156,22 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-indigo-400" />
-              {t('myHomeworkSubmissions')}
+              {t('mySubmissions')}
             </h2>
-            {level && filiere && (
-              <Link
-                href="/modules"
-                className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
-              >
-                <BookOpen className="w-4 h-4" />
-                {t('browseModules')}
-              </Link>
-            )}
+            <Link
+              href="/lessons"
+              className="text-sm text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+            >
+              <BookOpen className="w-4 h-4" />
+              {t('browseModules')}
+            </Link>
           </div>
 
           {sessionList.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <ClipboardList className="w-12 h-12 mx-auto mb-3 text-white/10" />
               <p className="text-white/40">{t('noSubmissions')}</p>
-              <p className="text-white/25 text-sm mt-1">{t('accessModuleToSubmit')}</p>
-              <Link href="/modules" className="inline-block mt-4 text-indigo-400 text-sm hover:text-indigo-300">
+              <Link href="/lessons" className="inline-block mt-4 text-indigo-400 text-sm hover:text-indigo-300">
                 {t('browseModules')} {language === 'ar' ? '←' : '→'}
               </Link>
             </div>
@@ -216,7 +213,7 @@ export default function DashboardPage() {
                           className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all"
                         >
                           <FileText className="w-3.5 h-3.5" />
-                          {t('viewPdf')}
+                          {t('viewPDF')}
                         </a>
                       ) : (
                         <span className="text-xs text-white/25">—</span>

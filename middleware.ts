@@ -30,8 +30,13 @@ export async function middleware(request: NextRequest) {
   const guestOnlyRoutes = ['/', '/level', '/filiere']
   
   // Auth routes
-  const authRoutes = ['/auth/login', '/auth/register', 
-    '/auth/forgot-password', '/auth/reset-password']
+  const authRoutes = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/forgot-password',
+    '/auth/verify-code',
+    '/auth/reset-password',
+  ]
   
   // Protected routes (need login)
   const protectedRoutes = ['/dashboard', '/modules', '/lessons',
