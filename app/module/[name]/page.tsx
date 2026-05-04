@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import {
   Download, Upload, FileText, CheckCircle2,
-  Clock, ArrowLeft, ArrowRight, AlertCircle, Loader2, BookOpen, ClipboardList
+  Clock, ArrowLeft, ArrowRight, AlertCircle, Loader2, BookOpen, ClipboardList, Star
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -43,11 +43,11 @@ interface Session {
 export default function ModulePage() {
   const params = useParams()
   const router = useRouter()
-  const moduleName = decodeURIComponent(params.name as string)
-  const icon = MODULE_ICONS[moduleName] ?? '📘'
+  const currentModule = decodeURIComponent(params.name as string)
+  const icon = MODULE_ICONS[currentModule] ?? '📘'
 
   const { language, t } = useLanguage()
-  const displayName = language === 'ar' ? (MODULE_ARABIC[moduleName] || moduleName) : moduleName
+  const displayName = language === 'ar' ? (MODULE_ARABIC[currentModule] || currentModule) : currentModule
   const [courses, setCourses] = useState<Course[]>([])
   const [homework, setHomework] = useState<Homework[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
@@ -59,6 +59,7 @@ export default function ModulePage() {
   const [level, setLevel] = useState<Level | null>(null)
   const [filiere, setFiliere] = useState<Filiere | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [grades, setGrades] = useState<any[]>([])
 
   const loadData = useCallback(async () => {
     const supabase = createClient()
@@ -66,37 +67,51 @@ export default function ModulePage() {
     if (!user) { router.push('/auth/login'); return }
     setUserId(user.id)
 
+    // 1. Fetch courses (lessons) for this module
     const { data: coursesData } = await supabase
       .from('lessons')
       .select('*')
-      .eq('subject', moduleName)
+      .eq('module', currentModule)
       .order('created_at', { ascending: false })
     setCourses(coursesData ?? [])
 
+    // 2. Fetch homework for this module
     const { data: hwData } = await supabase
       .from('homework')
       .select('*')
-      .eq('subject', moduleName)
+      .eq('module', currentModule)
       .order('due_date', { ascending: true })
     setHomework(hwData ?? [])
 
-    // ✅ Récupérer l'ID étudiant depuis public.students
+    // Get student row for ID consistency
     const { data: studentData } = await supabase
       .from('students')
       .select('id')
-      .eq('email', user.email)
+      .eq('id', user.id)
       .single()
 
-    // ✅ Charger les soumissions avec le bon ID
+    const studentId = studentData?.id || user.id
+
+    // 3. Load submissions for this student
     const { data: sessionsData } = await supabase
       .from('submissions')
       .select('*')
-      .eq('student_id', studentData?.id)
+      .eq('student_id', studentId)
+      .eq('module', currentModule)
       .order('submitted_at', { ascending: false })
     setSessions(sessionsData ?? [])
 
+    // 4. Load grades for this module + student
+    const { data: gradesData } = await supabase
+      .from('grades')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('module', currentModule)
+      .order('created_at', { ascending: false })
+    setGrades(gradesData ?? [])
+
     setLoading(false)
-  }, [moduleName, router])
+  }, [currentModule, router])
 
   useEffect(() => {
     const storedLevel = getFromStorage(STORAGE_KEYS.LEVEL) as Level
@@ -289,6 +304,37 @@ export default function ModulePage() {
                         <Download className="w-3.5 h-3.5" />
                         {t('viewHomework')}
                       </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* Grades section for this module */}
+            <section className="glass-card p-6">
+              <div className={cn("flex items-center gap-3 mb-5", language === 'ar' ? "flex-row-reverse" : "flex-row")}>
+                <Star className="w-5 h-5 text-yellow-400" />
+                <h2 className="text-lg font-bold">{t('grades')}</h2>
+              </div>
+              {grades.length === 0 ? (
+                <div className="text-center py-10 text-white/30">
+                  <Star className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">{t('noGrades')}</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {grades.map(g => (
+                    <div key={g.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5">
+                      <div>
+                        <p className="text-sm font-medium text-white">{g.module}</p>
+                        <p className="text-xs text-white/30">{formatDate(g.created_at)}</p>
+                      </div>
+                      <span className={cn(
+                        "text-xl font-black",
+                        g.grade >= 16 ? 'text-green-400' : g.grade >= 12 ? 'text-blue-400' : g.grade >= 10 ? 'text-yellow-400' : 'text-red-400'
+                      )}>
+                        {g.grade}<span className="text-xs text-white/30 font-normal">/20</span>
+                      </span>
                     </div>
                   ))}
                 </div>

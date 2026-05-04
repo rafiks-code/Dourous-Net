@@ -30,6 +30,7 @@ export default function ProfLessonsPage() {
   const [success, setSuccess] = useState(false)
 
   const [form, setForm] = useState({ title: '', subject: '', description: '', pdfUrl: '', level: '', filiere: '' })
+  const [profSubject, setProfSubject] = useState('')
 
   const LEVELS = ['1AS', '2AS', '3AS']
   const FILIERES: Record<string, string[]> = {
@@ -52,6 +53,18 @@ export default function ProfLessonsPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    // Fetch professor's own module
+    const { data: profData } = await supabase
+      .from('professors')
+      .select('module, subject')
+      .eq('id', user.id)
+      .single()
+    const moduleValue = profData?.module || profData?.subject
+    if (moduleValue) {
+      setProfSubject(moduleValue)
+      setForm(prev => ({ ...prev, subject: moduleValue }))
+    }
 
     const { data, error } = await supabase
       .from('lessons')
@@ -92,6 +105,7 @@ export default function ProfLessonsPage() {
           title: form.title,
           content: form.description,
           subject: form.subject,
+          module: form.subject,
           file_url: form.pdfUrl,
           prof_id: user.id,
           created_at: new Date().toISOString()
@@ -168,49 +182,25 @@ export default function ProfLessonsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('level')}</Label>
-                  <select
-                    value={form.level}
-                    onChange={e => setForm({ ...form, level: e.target.value, filiere: '', subject: '' })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-                  >
-                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                    {LEVELS.map(l => <option key={l} value={l} className="bg-[#0a0a1a]">{l}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('filiere')}</Label>
-                  <select
-                    value={form.filiere}
-                    onChange={e => setForm({ ...form, filiere: e.target.value, subject: '' })}
-                    disabled={!form.level}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-40"
-                  >
-                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                    {form.level && FILIERES[form.level]?.map(f => (
-                      <option key={f} value={f} className="bg-[#0a0a1a]">{f}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
+              {/* Matière — locked to professor's own subject */}
               <div className="space-y-2">
-                <Label htmlFor="subject">{t('subject')}</Label>
-                <select
-                  id="subject"
-                  value={form.subject}
-                  onChange={e => setForm({ ...form, subject: e.target.value })}
-                  disabled={!form.filiere}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-40"
-                >
-                  <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                  {form.filiere && FILIERE_MATIERES[form.filiere]?.map(m => (
-                    <option key={m} value={m} className="bg-[#0a0a1a]">{m}</option>
-                  ))}
-                </select>
+                <Label>{t('subject')}</Label>
+                {profSubject ? (
+                  <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-indigo-300 font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-400 inline-block" />
+                    {profSubject}
+                    <span className="ml-auto text-white/20 text-xs">{t('profSubject')}</span>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    value={form.subject}
+                    onChange={e => setForm({ ...form, subject: e.target.value })}
+                    required
+                    placeholder={t('subjectPlaceholder')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                )}
               </div>
 
               <div className="space-y-2">

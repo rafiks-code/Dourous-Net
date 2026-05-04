@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   LogOut, LayoutDashboard, BookOpen, Bell, Search,
-  Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings, CheckCircle
+  Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings, CheckCircle, Star
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -143,6 +143,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     { name: 'lessons', href: '/prof/lessons', icon: <BookOpen className="w-4 h-4" /> },
     { name: 'homework', href: '/prof/homework', icon: <FileText className="w-4 h-4" /> },
     { name: 'corrections', href: '/prof/corrections', icon: <Check className="w-4 h-4" /> },
+    { name: 'grades', href: '/prof/grades', icon: <Star className="w-4 h-4" /> },
   ] as const
 
   const navLinks = userRole === 'professor' ? professorLinks : studentLinks;

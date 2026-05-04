@@ -132,7 +132,8 @@ export default function RegisterPage() {
           id: user.id,
           email: form.email,
           full_name: form.fullName,
-          subject: form.subject
+          subject: form.subject,
+          module: form.subject
         })
       } else {
         await supabase.from('students').insert({

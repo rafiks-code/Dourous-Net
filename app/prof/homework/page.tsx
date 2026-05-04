@@ -36,6 +36,7 @@ export default function ProfHomeworkPage() {
   const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({})
 
   const [form, setForm] = useState({ title: '', subject: '', description: '', dueDate: '', pdfUrl: '', level: '', filiere: '' })
+  const [profSubject, setProfSubject] = useState('')
 
   const LEVELS = ['1AS', '2AS', '3AS']
   const FILIERES: Record<string, string[]> = {
@@ -59,6 +60,18 @@ export default function ProfHomeworkPage() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
+
+    // Fetch professor's own module
+    const { data: profData } = await supabase
+      .from('professors')
+      .select('module, subject')
+      .eq('id', user.id)
+      .single()
+    const moduleValue = profData?.module || profData?.subject
+    if (moduleValue) {
+      setProfSubject(moduleValue)
+      setForm(prev => ({ ...prev, subject: moduleValue }))
+    }
 
     const { data, error } = await supabase
       .from('homework')
@@ -147,6 +160,7 @@ export default function ProfHomeworkPage() {
           title: form.title,
           description: form.description,
           subject: form.subject,
+          module: form.subject,
           file_url: form.pdfUrl,
           due_date: form.dueDate,
           prof_id: user.id,
@@ -224,62 +238,38 @@ export default function ProfHomeworkPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t('level')}</Label>
-                  <select
-                    value={form.level}
-                    onChange={e => setForm({ ...form, level: e.target.value, filiere: '', subject: '' })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  >
-                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                    {LEVELS.map(l => <option key={l} value={l} className="bg-[#0a0a1a]">{l}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{t('filiere')}</Label>
-                  <select
-                    value={form.filiere}
-                    onChange={e => setForm({ ...form, filiere: e.target.value, subject: '' })}
-                    disabled={!form.level}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-40"
-                  >
-                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                    {form.level && FILIERES[form.level]?.map(f => (
-                      <option key={f} value={f} className="bg-[#0a0a1a]">{f}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="subject">{t('subject')}</Label>
-                  <select
-                    id="subject"
+              {/* Matière — locked to professor's own subject */}
+              <div className="space-y-2">
+                <Label>{t('subject')}</Label>
+                {profSubject ? (
+                  <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-blue-300 font-semibold flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
+                    {profSubject}
+                    <span className="ml-auto text-white/20 text-xs">{t('profSubject')}</span>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
                     value={form.subject}
                     onChange={e => setForm({ ...form, subject: e.target.value })}
-                    disabled={!form.filiere}
                     required
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-40"
-                  >
-                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
-                    {form.filiere && FILIERE_MATIERES[form.filiere]?.map(m => (
-                      <option key={m} value={m} className="bg-[#0a0a1a]">{m}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="dueDate">{t('dueDate')}</Label>
-                  <Input
-                    id="dueDate"
-                    type="date"
-                    value={form.dueDate}
-                    onChange={e => setForm({ ...form, dueDate: e.target.value })}
-                    required
-                    className="bg-white/5 border-white/10"
+                    placeholder={t('subjectPlaceholder')}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                   />
-                </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="dueDate">{t('dueDate')}</Label>
+                <Input
+                  id="dueDate"
+                  type="date"
+                  value={form.dueDate}
+                  onChange={e => setForm({ ...form, dueDate: e.target.value })}
+                  required
+                  className="bg-white/5 border-white/10"
+                />
               </div>
 
               <div className="space-y-2">
@@ -377,9 +367,9 @@ export default function ProfHomeworkPage() {
                   </div>
 
                   <div className="flex items-center gap-2 w-full md:w-auto">
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       className="flex-1 md:flex-none gap-2 bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
                       onClick={() => loadSubmissions(hw.id)}
                     >
@@ -409,7 +399,7 @@ export default function ProfHomeworkPage() {
                 </div>
 
                 {selectedHomeworkId === hw.id && (
-                  <div 
+                  <div
                     className="glass-card p-6 border-white/10 bg-[#0a0a1a] animate-fade-slide-up"
                     dir={language === 'ar' ? 'rtl' : 'ltr'}
                   >
@@ -429,8 +419,8 @@ export default function ProfHomeworkPage() {
                     ) : (
                       <div className="space-y-3">
                         {submissions.map((sub) => (
-                          <div 
-                            key={sub.id} 
+                          <div
+                            key={sub.id}
                             className={cn(
                               "flex flex-col md:items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors gap-4",
                               language === 'ar' ? "md:flex-row-reverse text-right" : "md:flex-row text-left"
@@ -448,8 +438,8 @@ export default function ProfHomeworkPage() {
                                 <span className="text-xs text-white/50">📅 {t('submittedOn')} {new Date(sub.submitted_at).toLocaleString()}</span>
                                 <span className={cn(
                                   "text-[10px] px-2 py-0.5 rounded-full border",
-                                  sub.status === 'corrigé' 
-                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                                  sub.status === 'corrigé'
+                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
                                     : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
                                 )}>
                                   {sub.status === 'corrigé' ? '🟢 ' + t('statusCorrected') : '🔵 ' + t('statusSubmitted')}
@@ -469,18 +459,18 @@ export default function ProfHomeworkPage() {
                                 </Button>
                               </a>
                               {sub.status !== 'corrigé' ? (
-                                <Button 
-                                  variant="secondary" 
-                                  size="sm" 
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
                                   onClick={() => markAsCorrected(sub.id)}
                                   className={cn("flex-1 md:flex-none bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border-0 h-9 gap-1", language === 'ar' && "flex-row-reverse")}
                                 >
                                   ✏️ {t('markAsCorrected')}
                                 </Button>
                               ) : (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
                                   disabled
                                   className={cn("flex-1 md:flex-none opacity-50 cursor-not-allowed h-9 text-xs gap-1", language === 'ar' && "flex-row-reverse")}
                                 >
