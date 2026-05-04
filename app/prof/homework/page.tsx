@@ -30,6 +30,11 @@ export default function ProfHomeworkPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
 
+  const [selectedHomeworkId, setSelectedHomeworkId] = useState<string | null>(null)
+  const [submissions, setSubmissions] = useState<any[]>([])
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false)
+  const [submissionCounts, setSubmissionCounts] = useState<Record<string, number>>({})
+
   const [form, setForm] = useState({ title: '', subject: '', description: '', dueDate: '', pdfUrl: '', level: '', filiere: '' })
 
   const LEVELS = ['1AS', '2AS', '3AS']
@@ -49,6 +54,7 @@ export default function ProfHomeworkPage() {
     'Gestion et Économie': ['Mathématiques', 'Comptabilité', 'Économie', 'Droit', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Philosophie']
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const loadHomework = useCallback(async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -64,9 +70,57 @@ export default function ProfHomeworkPage() {
       console.error('Error loading homework:', error)
     } else {
       setHomework(data ?? [])
+      if (data) {
+        loadSubmissionCounts(data)
+      }
     }
     setLoading(false)
   }, [supabase])
+
+  async function loadSubmissionCounts(homeworkList: any[]) {
+    const supabaseClient = createClient()
+    const counts: Record<string, number> = {}
+    for (const hw of homeworkList) {
+      const { count } = await supabaseClient
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('homework_id', hw.id)
+      counts[hw.id] = count ?? 0
+    }
+    setSubmissionCounts(counts)
+  }
+
+  async function loadSubmissions(homeworkId: string) {
+    if (selectedHomeworkId === homeworkId) {
+      // Toggle: clicking same homework closes the panel
+      setSelectedHomeworkId(null)
+      setSubmissions([])
+      return
+    }
+    setLoadingSubmissions(true)
+    setSelectedHomeworkId(homeworkId)
+    const supabaseClient = createClient()
+    const { data } = await supabaseClient
+      .from('submissions')
+      .select(`
+        id, file_url, file_name, status, submitted_at,
+        students ( full_name, email )
+      `)
+      .eq('homework_id', homeworkId)
+      .order('submitted_at', { ascending: false })
+    setSubmissions(data ?? [])
+    setLoadingSubmissions(false)
+  }
+
+  async function markAsCorrected(submissionId: string) {
+    const supabaseClient = createClient()
+    await supabaseClient
+      .from('submissions')
+      .update({ status: 'corrigé' })
+      .eq('id', submissionId)
+    // Reload submissions
+    if (selectedHomeworkId) loadSubmissions(selectedHomeworkId)
+  }
 
   useEffect(() => {
     loadHomework()
@@ -297,55 +351,149 @@ export default function ProfHomeworkPage() {
             </div>
           ) : (
             homework.map((hw, index) => (
-              <div
-                key={hw.id}
-                className="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group hover:border-blue-500/40 transition-all duration-300 animate-fade-slide-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                    <FileText className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
-                        {hw.subject}
-                      </span>
-                      <span className="text-[10px] text-amber-400 flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {language === 'ar' ? 'آخر أجل:' : 'Échéance:'} {new Date(hw.due_date).toLocaleDateString()}
-                      </span>
+              <div key={hw.id} className="space-y-4 animate-fade-slide-up" style={{ animationDelay: `${index * 50}ms` }}>
+                <div className="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 group hover:border-blue-500/40 transition-all duration-300">
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <FileText className="w-6 h-6 text-blue-400" />
                     </div>
-                    <h3 className="text-lg font-bold text-white truncate group-hover:text-blue-300 transition-colors">
-                      {hw.title}
-                    </h3>
-                    <p className="text-xs text-white/50 line-clamp-1 max-w-md">
-                      {hw.description}
-                    </p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+                          {hw.subject}
+                        </span>
+                        <span className="text-[10px] text-amber-400 flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {language === 'ar' ? 'آخر أجل:' : 'Échéance:'} {new Date(hw.due_date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-white truncate group-hover:text-blue-300 transition-colors">
+                        {hw.title}
+                      </h3>
+                      <p className="text-xs text-white/50 line-clamp-1 max-w-md">
+                        {hw.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full md:w-auto">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="flex-1 md:flex-none gap-2 bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20"
+                      onClick={() => loadSubmissions(hw.id)}
+                    >
+                      <ClipboardList className="w-4 h-4" />
+                      {t('viewSubmissions')} ({submissionCounts[hw.id] ?? 0})
+                    </Button>
+                    <a
+                      href={hw.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 md:flex-none"
+                    >
+                      <Button variant="secondary" size="sm" className="w-full gap-2 hover:bg-white/10">
+                        <FileText className="w-4 h-4" />
+                        {t('viewHomework')}
+                      </Button>
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                      onClick={() => handleDelete(hw.id, hw.file_url)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full md:w-auto">
-                  <a
-                    href={hw.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 md:flex-none"
+                {selectedHomeworkId === hw.id && (
+                  <div 
+                    className="glass-card p-6 border-white/10 bg-[#0a0a1a] animate-fade-slide-up"
+                    dir={language === 'ar' ? 'rtl' : 'ltr'}
                   >
-                    <Button variant="secondary" size="sm" className="w-full gap-2 hover:bg-white/10">
-                      <FileText className="w-4 h-4" />
-                      {t('viewHomework')}
-                    </Button>
-                  </a>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                    onClick={() => handleDelete(hw.id, hw.file_url)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                    <h4 className={cn("text-md font-bold mb-4 text-indigo-300 flex items-center gap-2", language === 'ar' ? "text-right flex-row-reverse" : "text-left")}>
+                      <ClipboardList className="w-5 h-5" />
+                      {t('submissionsFor')} {hw.title}
+                    </h4>
+                    {loadingSubmissions ? (
+                      <div className="flex justify-center items-center p-4 gap-2 text-indigo-400">
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        <span className="text-sm font-medium">{t('loadingSubmissions')}</span>
+                      </div>
+                    ) : submissions.length === 0 ? (
+                      <div className="text-center p-4 text-white/50 text-sm">
+                        {t('noSubmissionsYet')}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {submissions.map((sub) => (
+                          <div 
+                            key={sub.id} 
+                            className={cn(
+                              "flex flex-col md:items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/8 transition-colors gap-4",
+                              language === 'ar' ? "md:flex-row-reverse text-right" : "md:flex-row text-left"
+                            )}
+                          >
+                            <div className="flex-1">
+                              <p className={cn("font-bold text-sm text-white flex items-center gap-2", language === 'ar' && "flex-row-reverse")}>
+                                👤 {sub.students?.full_name || t('studentName')}
+                                <span className="text-xs font-normal text-white/50">📧 {sub.students?.email || t('studentEmail')}</span>
+                              </p>
+                              <div className={cn(
+                                "flex flex-wrap items-center mt-2 gap-3",
+                                language === 'ar' ? "flex-row-reverse" : "flex-row"
+                              )}>
+                                <span className="text-xs text-white/50">📅 {t('submittedOn')} {new Date(sub.submitted_at).toLocaleString()}</span>
+                                <span className={cn(
+                                  "text-[10px] px-2 py-0.5 rounded-full border",
+                                  sub.status === 'corrigé' 
+                                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" 
+                                    : "bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                                )}>
+                                  {sub.status === 'corrigé' ? '🟢 ' + t('statusCorrected') : '🔵 ' + t('statusSubmitted')}
+                                </span>
+                                <span className={cn("text-xs text-white/40 flex items-center gap-1", language === 'ar' && "flex-row-reverse")}>
+                                  📄 {sub.file_name || 'document.pdf'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className={cn(
+                              "flex flex-wrap w-full md:w-auto gap-2",
+                              language === 'ar' ? "flex-row-reverse" : "flex-row"
+                            )}>
+                              <a href={sub.file_url} target="_blank" rel="noopener noreferrer" className="flex-1 md:flex-none">
+                                <Button variant="secondary" size="sm" className={cn("w-full bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border-0 h-9 gap-1", language === 'ar' && "flex-row-reverse")}>
+                                  📂 {t('viewFile')}
+                                </Button>
+                              </a>
+                              {sub.status !== 'corrigé' ? (
+                                <Button 
+                                  variant="secondary" 
+                                  size="sm" 
+                                  onClick={() => markAsCorrected(sub.id)}
+                                  className={cn("flex-1 md:flex-none bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border-0 h-9 gap-1", language === 'ar' && "flex-row-reverse")}
+                                >
+                                  ✏️ {t('markAsCorrected')}
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  disabled
+                                  className={cn("flex-1 md:flex-none opacity-50 cursor-not-allowed h-9 text-xs gap-1", language === 'ar' && "flex-row-reverse")}
+                                >
+                                  ✔️ {t('alreadyCorrected')}
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))
           )}

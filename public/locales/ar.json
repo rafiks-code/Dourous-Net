@@ -297,5 +297,20 @@
   "sub_german": "اللغة الألمانية",
   "sub_accounting": "المحاسبة",
   "sub_economy": "الاقتصاد",
-  "sub_law": "القانون"
+  "sub_law": "القانون",
+  "viewSubmissions": "عرض الأعمال المُرسلة",
+  "noSubmissionsYet": "لم يُرسل أي طالب هذا الواجب بعد",
+  "markAsCorrected": "تصحيح",
+  "viewFile": "فتح الملف",
+  "submittedOn": "أُرسل بتاريخ",
+  "submissionsCount": "أعمال مُرسلة",
+  "correctionDone": "تم تسجيل التصحيح",
+  "statusSubmitted": "مُرسل",
+  "statusCorrected": "مُصحَّح",
+  "studentName": "اسم الطالب",
+  "studentEmail": "البريد الإلكتروني",
+  "loadingSubmissions": "جارٍ تحميل الأعمال...",
+  "alreadyCorrected": "تم التصحيح مسبقاً",
+  "closePanel": "إغلاق",
+  "submissionsFor": "الأعمال المُرسلة لـ"
 }

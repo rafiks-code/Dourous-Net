@@ -297,5 +297,20 @@
   "sub_german": "Allemand",
   "sub_accounting": "Comptabilité",
   "sub_economy": "Économie",
-  "sub_law": "Droit"
+  "sub_law": "Droit",
+  "viewSubmissions": "Voir les rendus",
+  "noSubmissionsYet": "Aucun étudiant n'a encore rendu ce devoir",
+  "markAsCorrected": "Marquer comme corrigé",
+  "viewFile": "Voir le fichier",
+  "submittedOn": "Rendu le",
+  "submissionsCount": "rendus",
+  "correctionDone": "Correction enregistrée",
+  "statusSubmitted": "Soumis",
+  "statusCorrected": "Corrigé",
+  "studentName": "Nom de l'étudiant",
+  "studentEmail": "Email",
+  "loadingSubmissions": "Chargement des rendus...",
+  "alreadyCorrected": "Déjà corrigé",
+  "closePanel": "Fermer",
+  "submissionsFor": "Rendus pour"
 }
