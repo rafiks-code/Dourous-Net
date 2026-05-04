@@ -5,8 +5,8 @@ import { useRouter, usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { 
-  LogOut, LayoutDashboard, BookOpen, Bell, Search, 
+import {
+  LogOut, LayoutDashboard, BookOpen, Bell, Search,
   Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings, CheckCircle
 } from 'lucide-react'
 import Link from 'next/link'
@@ -27,13 +27,13 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   const [showNotifications, setShowNotifications] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
-  
+
   const { language, setLanguage, t } = useLanguage()
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<{id: string, title: string, type: 'lessons' | 'homework', url: string}[]>([])
+  const [searchResults, setSearchResults] = useState<{ id: string, title: string, type: 'lessons' | 'homework', url: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
 
   // Notifications state
@@ -101,7 +101,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
           .select('id, title')
           .ilike('title', `%${searchQuery}%`)
           .limit(5)
-        
+
         const { data: homeworkData } = await supabase
           .from('homework')
           .select('id, title')
@@ -112,7 +112,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
           ...(lessonsData || []).map(l => ({ ...l, type: 'lessons' as const, url: userRole === 'professor' ? '/prof/lessons' : '/lessons' })),
           ...(homeworkData || []).map(h => ({ ...h, type: 'homework' as const, url: userRole === 'professor' ? '/prof/homework' : '/homework' }))
         ]
-        
+
         setSearchResults(results)
       } catch (err) {
         console.error('Search error', err)
@@ -128,13 +128,13 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     ? userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
     : userEmail?.[0]?.toUpperCase() ?? '?'
 
+  // CHANGE 1 - Role-based navbar links
   const studentLinks = [
     { name: 'dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { name: 'lessons', href: '/lessons', icon: <BookOpen className="w-4 h-4" /> },
     { name: 'homework', href: '/homework', icon: <FileText className="w-4 h-4" /> },
     { name: 'grades', href: '/grades', icon: <ClipboardList className="w-4 h-4" /> },
     { name: 'corrections', href: '/corrections', icon: <CheckCircle className="w-4 h-4" /> },
-    { name: 'messages', href: '/messages', icon: <MessageSquare className="w-4 h-4" /> },
     { name: 'myModules', href: '/modules', icon: <BookOpen className="w-4 h-4" /> },
   ] as const
 
@@ -142,19 +142,17 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
     { name: 'dashboard', href: '/prof/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
     { name: 'lessons', href: '/prof/lessons', icon: <BookOpen className="w-4 h-4" /> },
     { name: 'homework', href: '/prof/homework', icon: <FileText className="w-4 h-4" /> },
-    { name: 'correctionsTitle', href: '/prof/corrections', icon: <Check className="w-4 h-4" /> },
-    { name: 'grades', href: '/prof/grades', icon: <ClipboardList className="w-4 h-4" /> },
-    { name: 'messages', href: '/prof/messages', icon: <MessageSquare className="w-4 h-4" /> },
+    { name: 'corrections', href: '/prof/corrections', icon: <Check className="w-4 h-4" /> },
   ] as const
 
-  const navLinks = userRole === 'professor' ? professorLinks : studentLinks
+  const navLinks = userRole === 'professor' ? professorLinks : studentLinks;
 
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#0a0a1a]/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-6">
-            <button 
+            <button
               className="lg:hidden text-white/70 hover:text-white"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
@@ -176,11 +174,11 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                     : pathname === link.href
                   return (
                     <Link key={link.name} href={link.href}>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className={cn(
-                          "gap-2", 
+                          "gap-2",
                           isActive ? "text-indigo-400 bg-indigo-500/10" : "text-white/70 hover:text-white hover:bg-white/5"
                         )}
                       >
@@ -195,19 +193,19 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="text-white/70 hover:text-white rounded-lg font-bold min-w-[40px]"
               onClick={() => setLanguage(language === 'fr' ? 'ar' : 'fr')}
             >
               <Globe className="h-4 w-4 mr-1 sm:mr-2" />
               {language === 'fr' ? 'FR' : 'ع'}
             </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
+
+            <Button
+              variant="ghost"
+              size="icon"
               className="text-white/70 hover:text-white rounded-full"
               onClick={() => setIsSearchOpen(true)}
             >
@@ -217,9 +215,9 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
             {userEmail ? (
               <>
                 <div className="relative">
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     className="text-white/70 hover:text-white rounded-full"
                     onClick={() => {
                       setShowNotifications(!showNotifications)
@@ -242,7 +240,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                       <div className="flex items-center justify-between p-4 border-b border-white/10">
                         <h3 className="font-semibold text-white">{t('notifications')}</h3>
                         {unreadCount > 0 && (
-                          <button 
+                          <button
                             onClick={handleMarkAllRead}
                             className="text-xs text-indigo-400 hover:text-indigo-300"
                           >
@@ -288,7 +286,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                 <div className="hidden sm:block h-6 w-px bg-white/10 mx-1"></div>
 
                 <div className="relative">
-                  <Avatar 
+                  <Avatar
                     className="h-8 w-8 ml-1 sm:ml-0 border border-white/10 cursor-pointer hover:ring-2 ring-indigo-500 transition-all"
                     onClick={() => {
                       setIsProfileDropdownOpen(!isProfileDropdownOpen)
@@ -297,7 +295,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                   >
                     <AvatarFallback className="text-xs bg-indigo-500/20 text-indigo-200">{initials}</AvatarFallback>
                   </Avatar>
-                  
+
                   {isProfileDropdownOpen && (
                     <div className={cn(
                       "absolute mt-2 w-48 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4",
@@ -321,7 +319,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                           </div>
                         </Link>
                         <div className="h-px bg-white/10 my-1"></div>
-                        <button 
+                        <button
                           onClick={() => {
                             setIsProfileDropdownOpen(false)
                             handleSignOut()
@@ -358,7 +356,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
       {isMobileMenuOpen && userEmail && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          
+
           <div className={cn(
             "absolute top-0 bottom-0 w-64 bg-[#0a0a1a] border-white/10 p-4 shadow-2xl animate-in",
             language === 'ar' ? "right-0 border-l slide-in-from-right" : "left-0 border-r slide-in-from-left"
@@ -369,7 +367,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <nav className="space-y-1">
               {navLinks.map(link => {
                 const isActive = link.href === '/modules'
@@ -387,7 +385,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                   </Link>
                 )
               })}
-              
+
               <div className="pt-4 mt-4 border-t border-white/10 space-y-1">
                 <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
                   <div className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-white/70 hover:bg-white/5 hover:text-white transition-colors">
@@ -401,7 +399,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                     {t('settings')}
                   </div>
                 </Link>
-                <button 
+                <button
                   onClick={handleSignOut}
                   className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium text-red-400/80 hover:bg-red-500/10 hover:text-red-400 w-full transition-colors"
                 >
@@ -433,7 +431,7 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-2 max-h-[60vh] overflow-y-auto">
               {isSearching ? (
                 <div className="p-8 text-center text-white/40">{t('loading')}</div>

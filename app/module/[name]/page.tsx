@@ -35,8 +35,9 @@ interface Session {
   id: string
   status: string
   file_url: string | null
+  submitted_at: string
   date: string
-  created_at: string
+  file_name?: string
 }
 
 export default function ModulePage() {
@@ -79,11 +80,18 @@ export default function ModulePage() {
       .order('due_date', { ascending: true })
     setHomework(hwData ?? [])
 
+    // ✅ Récupérer l'ID étudiant depuis public.students
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('id')
+      .eq('email', user.email)
+      .single()
+
+    // ✅ Charger les soumissions avec le bon ID
     const { data: sessionsData } = await supabase
       .from('submissions')
-      .select('*, homework(title)')
-      .eq('student_id', user.id)
-      .eq('homework.subject', moduleName)
+      .select('*')
+      .eq('student_id', studentData?.id)
       .order('submitted_at', { ascending: false })
     setSessions(sessionsData ?? [])
 
@@ -102,11 +110,11 @@ export default function ModulePage() {
     const file = e.target.files?.[0]
     if (!file || !userId) return
     if (file.type !== 'application/pdf') {
-      setUploadMsg(language === 'ar' ? 'الرجاء رفع ملف PDF فقط' : 'Veuillez uploader un fichier PDF uniquement.')
+      setUploadMsg(t('invalidFileType'))
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      setUploadMsg(language === 'ar' ? 'الملف أكبر من 10 ميغابايت' : 'Le fichier dépasse 10 Mo.')
+      setUploadMsg(t('fileTooLarge'))
       return
     }
 
@@ -115,48 +123,61 @@ export default function ModulePage() {
     setUploadMsg('')
 
     const supabase = createClient()
-    const fileName = `${userId}/${moduleName}/${Date.now()}_${file.name}`
 
-    const progressInterval = setInterval(() => {
-      setUploadProgress((prev) => Math.min(prev + 10, 85))
-    }, 200)
+    try {
+      // 1. Get student ID
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('id')
+        .eq('email', user?.email)
+        .single()
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('submissions')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false })
+      if (!studentData) throw new Error(t('studentNotFound'))
 
-    clearInterval(progressInterval)
+      // 2. Sanitize file name
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${studentData.id}/${Date.now()}_${sanitizedName}`
 
-    if (uploadError) {
-      setUploadMsg(`Erreur: ${uploadError.message}`)
-      setUploading(false)
-      setUploadProgress(0)
-      return
-    }
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => Math.min(prev + 10, 85))
+      }, 200)
 
-    setUploadProgress(90)
+      // 3. Upload to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('submissions')
+        .upload(fileName, file, { cacheControl: '3600', upsert: false })
 
-    const { data: { publicUrl } } = supabase.storage.from('submissions').getPublicUrl(uploadData.path)
+      clearInterval(progressInterval)
+      if (uploadError) throw uploadError
 
-    const { error: sessionError } = await supabase.from('submissions').insert({
-      student_id: userId,
-      homework_id: homework[0]?.id, // Default to first available if none selected
-      file_url: publicUrl,
-      status: 'soumis',
-      submitted_at: new Date().toISOString(),
-    })
+      setUploadProgress(90)
 
-    setUploadProgress(100)
+      // 4. Get URL and insert
+      const { data: { publicUrl } } = supabase.storage.from('submissions').getPublicUrl(uploadData.path)
 
-    if (sessionError) {
-      setUploadMsg(`Erreur d'enregistrement: ${sessionError.message}`)
-    } else {
-      setUploadMsg(t('success'))
+      const { error: sessionError } = await supabase.from('submissions').insert({
+        student_id: studentData.id,
+        homework_id: homework[0]?.id || null,
+        file_url: publicUrl,
+        file_name: file.name,
+        status: 'soumis',
+        submitted_at: new Date().toISOString(),
+      })
+
+      if (sessionError) throw sessionError
+
+      setUploadProgress(100)
+      setUploadMsg(`✅ ${t('success')}`)
       await loadData()
-    }
 
-    setUploading(false)
-    if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (err: any) {
+      console.error(err)
+      setUploadMsg(`❌ ${t('error')}: ${err.message}`)
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
   }
 
   if (loading) {
@@ -192,15 +213,13 @@ export default function ModulePage() {
             </span>
           )}
         </div>
-        
+
         <div className={cn("flex items-center gap-4 mb-10", language === 'ar' ? "flex-row-reverse" : "flex-row")}>
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-violet-500/20 flex items-center justify-center text-3xl border border-white/10 flex-shrink-0">
             {icon}
           </div>
           <div>
-            <h1 className="text-3xl md:text-4xl font-black gradient-text">
-              {displayName}
-            </h1>
+            <h1 className="text-3xl md:text-4xl font-black gradient-text">{displayName}</h1>
             <p className="text-white/50 text-sm mt-1">
               {courses.length} {t('lessons')} · {homework.length} {t('homework')}
             </p>
@@ -214,7 +233,6 @@ export default function ModulePage() {
                 <BookOpen className="w-5 h-5 text-indigo-400" />
                 <h2 className="text-lg font-bold">{t('lessons')}</h2>
               </div>
-
               {courses.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -231,12 +249,8 @@ export default function ModulePage() {
                         <p className="text-sm font-medium text-white truncate">{course.title}</p>
                         <p className="text-xs text-white/40">{formatDate(course.created_at)}</p>
                       </div>
-                      <a
-                        href={course.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all flex-shrink-0"
-                      >
+                      <a href={course.file_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 transition-all flex-shrink-0">
                         <Download className="w-3.5 h-3.5" />
                         {t('openDocument')}
                       </a>
@@ -251,7 +265,6 @@ export default function ModulePage() {
                 <ClipboardList className="w-5 h-5 text-violet-400" />
                 <h2 className="text-lg font-bold">{t('homework')}</h2>
               </div>
-
               {homework.length === 0 ? (
                 <div className="text-center py-10 text-white/30">
                   <ClipboardList className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -271,12 +284,8 @@ export default function ModulePage() {
                           {t('deadline')} : {formatDate(hw.due_date)}
                         </p>
                       </div>
-                      <a
-                        href={hw.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 font-medium px-3 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 transition-all flex-shrink-0"
-                      >
+                      <a href={hw.file_url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 font-medium px-3 py-1.5 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 transition-all flex-shrink-0">
                         <Download className="w-3.5 h-3.5" />
                         {t('viewHomework')}
                       </a>
@@ -293,7 +302,6 @@ export default function ModulePage() {
                 <Upload className="w-5 h-5 text-emerald-400" />
                 {t('submitWork')}
               </h2>
-
               <div
                 className="border-2 border-dashed border-white/15 rounded-xl p-6 text-center cursor-pointer hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all group"
                 onClick={() => fileInputRef.current?.click()}
@@ -303,7 +311,6 @@ export default function ModulePage() {
                   {t('searchPlaceholder')}
                 </p>
               </div>
-
               <input
                 ref={fileInputRef}
                 type="file"
@@ -312,7 +319,6 @@ export default function ModulePage() {
                 onChange={handleUpload}
                 disabled={uploading}
               />
-
               {uploading && (
                 <div className="mt-4 space-y-2">
                   <div className="flex justify-between text-xs text-white/60">
@@ -322,9 +328,9 @@ export default function ModulePage() {
                   <Progress value={uploadProgress} />
                 </div>
               )}
-
               {uploadMsg && (
-                <div className={cn("mt-3 flex items-center gap-2 text-xs p-2 rounded-lg", uploadMsg.includes('✅') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}>
+                <div className={cn("mt-3 flex items-center gap-2 text-xs p-2 rounded-lg",
+                  uploadMsg.includes('✅') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400')}>
                   {uploadMsg.includes('✅') ? <CheckCircle2 className="w-4 h-4 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 flex-shrink-0" />}
                   {uploadMsg}
                 </div>
@@ -356,7 +362,7 @@ export default function ModulePage() {
                         <a href={s.file_url} target="_blank" rel="noopener noreferrer"
                           className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 mt-1">
                           <FileText className="w-3 h-3" />
-                          {t('openDocument')}
+                          {s.file_name || t('openDocument')}
                         </a>
                       )}
                     </div>

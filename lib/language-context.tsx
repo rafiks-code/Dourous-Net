@@ -1,23 +1,30 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { translations } from './translations'
+import fr from '../public/locales/fr.json'
+import ar from '../public/locales/ar.json'
 
 type Language = 'fr' | 'ar'
+type Direction = 'ltr' | 'rtl'
+
+const translations: Record<Language, any> = { fr, ar }
 
 interface LanguageContextType {
   language: Language
+  direction: Direction
   setLanguage: (lang: Language) => void
   t: (key: string) => string
 }
 
 const LanguageContext = createContext<LanguageContextType>({
   language: 'fr',
-  setLanguage: () => {},
+  direction: 'ltr',
+  setLanguage: () => { },
   t: (key) => key,
 })
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>('fr')
+  const direction: Direction = language === 'ar' ? 'rtl' : 'ltr'
 
   useEffect(() => {
     const saved = localStorage.getItem('dourous-lang') as Language
@@ -36,12 +43,22 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (key: string): string => {
-    const langTranslations = translations[language] as Record<string, string>
-    return langTranslations?.[key] ?? translations['fr'][key as keyof typeof translations['fr']] ?? key
+    const activeTranslations = translations[language]
+    const value = activeTranslations[key]
+    
+    if (!value) {
+      console.warn(`Missing translation key: "${key}"`)
+      // Fallback to FR if missing in AR
+      if (language === 'ar' && translations['fr'][key]) {
+        return translations['fr'][key]
+      }
+      return key
+    }
+    return value
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, direction, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   )

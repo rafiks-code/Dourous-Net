@@ -16,7 +16,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const { t, language } = useLanguage()
   const isAr = language === 'ar'
-  
+
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -49,7 +49,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-[#05050f] flex flex-col items-center justify-center px-4 py-12" dir={isAr ? 'rtl' : 'ltr'}>
-      
+
       {/* Header section consistent with Register */}
       <div className="flex flex-col items-center text-center mb-8">
         <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(79,70,229,0.4)]">
@@ -61,7 +61,7 @@ export default function LoginPage() {
 
       <div className="w-full max-w-md">
         <div className="bg-[#0f0f1a] border border-white/5 rounded-3xl p-8 shadow-2xl">
-          
+
           {isPasswordChanged && (
             <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 text-sm flex items-center gap-3 mb-6">
               <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
@@ -101,9 +101,9 @@ export default function LoginPage() {
                   required
                   className="h-12 bg-white/5 border-transparent rounded-xl focus:border-indigo-500 pr-10 transition-all"
                 />
-                <button 
-                  type="button" 
-                  onClick={() => setShowPassword(!showPassword)} 
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}

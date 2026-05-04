@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { 
-  CheckCircle, CheckCircle2, FileText, Loader2, AlertCircle, 
+import {
+  CheckCircle, CheckCircle2, FileText, Loader2, AlertCircle,
   User, ClipboardList, Send, Upload, Plus, X, Trash2, Calendar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -32,7 +32,7 @@ export default function ProfCorrectionsPage() {
   const supabase = createClient()
   const { t, language } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
-  
+
   // States for student copies
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loadingSubmissions, setLoadingSubmissions] = useState(true)
@@ -111,11 +111,11 @@ export default function ProfCorrectionsPage() {
   const handleCorrect = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedSub || !form.pdfUrl) return
-    
+
     setSubmitting(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       const { error: corrError } = await supabase
         .from('corrections')
         .insert({
@@ -141,7 +141,7 @@ export default function ProfCorrectionsPage() {
       setSelectedSub(null)
       await loadSubmissions()
       await loadCorrections()
-      
+
       setTimeout(() => setSuccess(false), 3000)
     } catch (err) {
       console.error('Correction error:', err)
@@ -188,13 +188,13 @@ export default function ProfCorrectionsPage() {
 
       if (insertError) throw insertError
 
-      setSuccessMsg('Correction publiée avec succès!')
+      setSuccessMsg(t('correctionPublished'))
       setGeneralForm({ title: '', subject: '', level: '', filiere: '', file: null })
       loadCorrections()
       setTimeout(() => setSuccessMsg(''), 3000)
 
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'upload')
+      setError(err.message || t('uploadError'))
     } finally {
       setUploading(false)
     }
@@ -227,7 +227,7 @@ export default function ProfCorrectionsPage() {
           {t('correctionsTitle')}
         </h1>
         <p className="text-white/50 mt-2">
-          Publiez et gérez les corrections PDF pour vos étudiants
+          {t('profCorrectionsSubtitle')}
         </p>
       </header>
 
@@ -237,53 +237,53 @@ export default function ProfCorrectionsPage() {
           <div className="glass-card p-8 border-emerald-500/20 border sticky top-24">
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
               <Plus className="w-5 h-5 text-emerald-400" />
-              Nouvelle correction...
+              {t('newCorrection')}
             </h2>
 
             <form onSubmit={handleUpload} className="space-y-6">
               <div className="space-y-2">
-                <Label>Titre de la correction</Label>
+                <Label>{t('correctionTitle')}</Label>
                 <Input
                   required
                   value={generalForm.title}
-                  onChange={e => setGeneralForm({...generalForm, title: e.target.value})}
-                  placeholder="Titre de la correction..."
+                  onChange={e => setGeneralForm({ ...generalForm, title: e.target.value })}
+                  placeholder={t('correctionTitlePlaceholder')}
                   className="bg-white/5 border-white/10"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Matière</Label>
+                <Label>{t('subject')}</Label>
                 <Input
                   required
                   value={generalForm.subject}
-                  onChange={e => setGeneralForm({...generalForm, subject: e.target.value})}
-                  placeholder="Ex: Mathématiques, Français..."
+                  onChange={e => setGeneralForm({ ...generalForm, subject: e.target.value })}
+                  placeholder={t('subjectExamplePlaceholder')}
                   className="bg-white/5 border-white/10"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Niveau</Label>
+                  <Label>{t('level')}</Label>
                   <select
                     value={generalForm.level}
-                    onChange={e => setGeneralForm({...generalForm, level: e.target.value, filiere: ''})}
+                    onChange={e => setGeneralForm({ ...generalForm, level: e.target.value, filiere: '' })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
                   >
-                    <option value="" className="bg-[#0a0a1a]">Choisir...</option>
+                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
                     {LEVELS.map(l => <option key={l} value={l} className="bg-[#0a0a1a]">{l}</option>)}
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Filière</Label>
+                  <Label>{t('filiere')}</Label>
                   <select
                     value={generalForm.filiere}
-                    onChange={e => setGeneralForm({...generalForm, filiere: e.target.value})}
+                    onChange={e => setGeneralForm({ ...generalForm, filiere: e.target.value })}
                     disabled={!generalForm.level}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all disabled:opacity-40"
                   >
-                    <option value="" className="bg-[#0a0a1a]">Choisir...</option>
+                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
                     {generalForm.level && FILIERES[generalForm.level]?.map(f => (
                       <option key={f} value={f} className="bg-[#0a0a1a]">{f}</option>
                     ))}
@@ -292,7 +292,7 @@ export default function ProfCorrectionsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Fichier PDF</Label>
+                <Label>{t('pdfFile')}</Label>
                 <div
                   onClick={() => fileRef.current?.click()}
                   className="border-2 border-dashed border-white/10 rounded-2xl p-8 text-center cursor-pointer hover:border-emerald-500/50 transition-all group bg-white/5 hover:bg-white/8"
@@ -302,7 +302,7 @@ export default function ProfCorrectionsPage() {
                     type="file"
                     accept=".pdf"
                     className="hidden"
-                    onChange={e => setGeneralForm({...generalForm, file: e.target.files?.[0] || null})}
+                    onChange={e => setGeneralForm({ ...generalForm, file: e.target.files?.[0] || null })}
                   />
                   {generalForm.file ? (
                     <div className="flex items-center justify-center gap-3">
@@ -314,7 +314,7 @@ export default function ProfCorrectionsPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-2">
                       <Upload className="w-8 h-8 text-white/20 group-hover:text-emerald-400 transition-colors" />
-                      <p className="text-sm text-white/40">Cliquez pour choisir un PDF</p>
+                      <p className="text-sm text-white/40">{t('clickToChoosePDF')}</p>
                     </div>
                   )}
                 </div>
@@ -343,7 +343,7 @@ export default function ProfCorrectionsPage() {
                 {uploading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
-                  "Publier la correction"
+                  t('publishCorrection')
                 )}
               </Button>
             </form>
@@ -353,7 +353,7 @@ export default function ProfCorrectionsPage() {
         {/* Right column: List */}
         <div className="lg:col-span-7 space-y-4 animate-fade-slide-up stagger-2">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Corrections</h2>
+            <h2 className="text-xl font-bold">{t('correctionsTitle')}</h2>
             <span className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold border border-blue-500/20">
               {corrections.length}
             </span>
@@ -366,7 +366,7 @@ export default function ProfCorrectionsPage() {
           ) : corrections.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <ClipboardList className="w-16 h-16 text-white/10 mx-auto mb-4 animate-float" />
-              <p className="text-white/40">Aucune correction publiée</p>
+              <p className="text-white/40">{t('noPublishedCorrections')}</p>
             </div>
           ) : (
             corrections.map((correction, index) => (
@@ -382,7 +382,7 @@ export default function ProfCorrectionsPage() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
-                        {correction.subject || 'Général'}
+                        {correction.subject || t('general')}
                       </span>
                       <span className="text-[10px] text-white/30 flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
@@ -407,7 +407,7 @@ export default function ProfCorrectionsPage() {
                   >
                     <Button variant="secondary" size="sm" className="w-full gap-2 hover:bg-white/10">
                       <FileText className="w-4 h-4" />
-                      Voir le PDF
+                      {t('viewPDF')}
                     </Button>
                   </a>
                   <Button

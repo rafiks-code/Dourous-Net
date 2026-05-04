@@ -24,12 +24,26 @@ export default function ModulesPage() {
     const storedFiliere = getFromStorage(STORAGE_KEYS.FILIERE) as Filiere
 
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       setIsLoggedIn(!!user)
 
       if (user) {
-        const userLevel = user.user_metadata?.level as Level
-        const userFiliere = user.user_metadata?.filiere as Filiere
+        let userLevel = user.user_metadata?.level as Level
+        let userFiliere = user.user_metadata?.filiere as Filiere
+
+        // Fallback: Fetch from students table if metadata is missing
+        if (!userLevel || !userFiliere) {
+          const { data: student } = await supabase
+            .from('students')
+            .select('level, filiere')
+            .eq('id', user.id)
+            .single()
+          
+          if (student) {
+            userLevel = student.level as Level
+            userFiliere = student.filiere as Filiere
+          }
+        }
 
         if (userLevel) setLevel(userLevel)
         if (userFiliere) setFiliere(userFiliere)

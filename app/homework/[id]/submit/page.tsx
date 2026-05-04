@@ -1,126 +1,183 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, ArrowLeft, ArrowRight, Loader2, UploadCloud, CheckCircle2, AlertCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import Link from 'next/link'
 import { useLanguage } from '@/lib/language-context'
-import PDFUpload from '@/components/PDFUpload'
-import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import { Upload, FileText, CheckCircle2, Loader2, ArrowLeft, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { motion, AnimatePresence } from 'framer-motion'
 
-export default function SubmitHomeworkPage({ params }: { params: { id: string } }) {
+export default function SubmitHomeworkPage() {
+  const { id: devoirId } = useParams()
   const router = useRouter()
   const { t, language } = useLanguage()
   const isAr = language === 'ar'
+  const fileRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
-  const [homework, setHomework] = useState<any>(null)
-  const [url, setUrl] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [fetching, setFetching] = useState(true)
+
+  const [devoir, setDevoir] = useState<any>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [error, setError] = useState('')
 
   useEffect(() => {
-    async function load() {
-      const { data } = await supabase.from('homework').select('*').eq('id', params.id).single()
-      if (data) setHomework(data)
-      setFetching(false)
+    async function fetchDevoir() {
+      const { data } = await supabase
+        .from('homework')
+        .select('*')
+        .eq('id', devoirId)
+        .single()
+      setDevoir(data)
     }
-    load()
-  }, [params.id, supabase])
+    fetchDevoir()
+  }, [devoirId, supabase])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!url) return
-    
-    setLoading(true)
+  const handleUpload = async () => {
+    if (!file) return
+    setUploading(true)
+    setError('')
+
     try {
+      // 1. Vérifier l'auth
       const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error(t('unauthorized'))
+
+      // 2. Chercher l'étudiant UNIQUEMENT par email
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('email', user.email)
+        .single()
       
-      if (user) {
-        const { error } = await supabase.from('submissions').insert({
-          homework_id: params.id,
-          student_id: user.id,
-          file_url: url,
-          status: 'pending', // Use standard 'pending' status
-          created_at: new Date().toISOString()
+      if (studentError || !studentData) {
+        console.log('Email cherché:', user.email)
+        console.log('Erreur Supabase:', studentError)
+        throw new Error(t('studentNotFound'))
+      }
+
+      // 3. Upload to storage
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const fileName = `${studentData.id}/${Date.now()}_${sanitizedName}`
+      const { error: uploadError } = await supabase.storage
+        .from('submissions')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from('submissions')
+        .getPublicUrl(fileName)
+
+      // 4. Insert into submissions
+      const { error: insertError } = await supabase
+        .from('submissions')
+        .insert({
+          student_id: studentData.id,
+          homework_id: devoirId,
+          file_url: urlData.publicUrl,
+          file_name: file.name
         })
 
-        if (error) throw error
-      }
-      
-      router.push('/homework')
-      router.refresh()
-    } catch (err) {
-      console.error('Submission error:', err)
-      alert(t('error'))
+      if (insertError) throw insertError
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push('/homework')
+        router.refresh()
+      }, 2000)
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || t('error'))
     } finally {
-      setLoading(false)
+      setUploading(false)
     }
   }
 
-  if (fetching) {
-    return (
-      <div className="page-container max-w-2xl mx-auto flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
-      </div>
-    )
-  }
+  if (!devoir) return <div className="p-12 text-center text-white/50">{t('loading')}</div>
 
   return (
-    <div className="page-container max-w-2xl mx-auto py-12" dir={isAr ? 'rtl' : 'ltr'}>
-      <Link href="/homework" className="inline-flex items-center text-sm text-blue-400 hover:text-blue-300 mb-8 group transition-colors">
-        {isAr ? <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" /> : <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />} 
-        {t('backToHomework')}
+    <div className="page-container max-w-2xl mx-auto py-12 px-4" dir={isAr ? 'rtl' : 'ltr'}>
+      <Link href="/homework" className="inline-flex items-center gap-2 text-white/40 hover:text-white mb-8 transition-colors group">
+        <ArrowLeft className={isAr ? "w-4 h-4 rotate-180" : "w-4 h-4 group-hover:-translate-x-1 transition-transform"} />
+        {t('back')}
       </Link>
-      
-      <div className="glass-card p-10 animate-scale-in border-blue-500/20 border shadow-2xl shadow-blue-500/5">
-        <div className="text-center mb-10">
-          <div className="w-20 h-20 bg-blue-500/10 rounded-3xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20 shadow-inner">
-            <UploadCloud className="w-10 h-10 text-blue-400" />
-          </div>
-          <h1 className="text-3xl font-black text-white mb-2">{t('submitAHomework')}</h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] font-bold text-blue-400 uppercase tracking-widest">
-            {homework?.subject}
-          </div>
-          <p className="text-white/60 text-lg font-bold mt-4">{homework?.title}</p>
+
+      <div className="glass-card p-8 space-y-8">
+        <div>
+          <h1 className="text-3xl font-black text-white mb-2">{t('submitHomework')}</h1>
+          <p className="text-white/50">{devoir.title}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-4">
-            <Label className="text-white/70 text-sm font-bold ml-1">{language === 'ar' ? 'قم برفع ملف الحل (PDF)' : 'Uploadez votre solution (PDF)'}</Label>
-            <PDFUpload 
-              bucket="submissions" 
-              onUpload={(url) => setUrl(url)}
-            />
-          </div>
+        <AnimatePresence mode="wait">
+          {success ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="py-12 flex flex-col items-center text-center space-y-4"
+            >
+              <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center border border-emerald-500/30">
+                <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">{t('success')}</h2>
+              <p className="text-white/40">{t('homeworkSubmittedSuccess')}</p>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
+              <div
+                onClick={() => fileRef.current?.click()}
+                className="border-2 border-dashed border-white/10 rounded-2xl p-12 text-center cursor-pointer hover:border-indigo-500/50 transition-all group bg-white/5 hover:bg-white/8"
+              >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".pdf"
+                  className="hidden"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    {file ? <FileText className="w-8 h-8 text-indigo-400" /> : <Upload className="w-8 h-8 text-indigo-400" />}
+                  </div>
+                  {file ? (
+                    <div>
+                      <p className="text-white font-bold">{file.name}</p>
+                      <p className="text-white/30 text-xs">{(file.size / (1024 * 1024)).toFixed(2)} MB</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-white font-bold">{t('clickToUpload')}</p>
+                      <p className="text-white/30 text-xs">PDF (Max 10MB)</p>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-white/50 leading-relaxed">
-              {isAr 
-                ? 'يرجى التأكد من أن الملف هو النسخة النهائية. بمجرد الإرسال، سيتمكن الأستاذ من رؤية عملك وبدء التصحيح.' 
-                : 'Veuillez vous assurer que le fichier est la version finale. Une fois envoyé, votre professeur pourra voir votre travail et commencer la correction.'}
-            </p>
-          </div>
+              {error && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-3 text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
 
-          <Button 
-            type="submit" 
-            variant="gradient" 
-            className="w-full py-7 font-black text-lg shadow-xl shadow-blue-500/20 from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500" 
-            disabled={loading || !url}
-          >
-            {loading ? (
-              <><Loader2 className="w-5 h-5 mr-3 animate-spin" /> {t('sending')}</>
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5 mr-3" />
-                {t('confirmSend')}
-              </>
-            )}
-          </Button>
-        </form>
+              <Button
+                variant="gradient"
+                className="w-full h-14 rounded-2xl font-black text-lg shadow-xl shadow-indigo-500/20"
+                disabled={!file || uploading}
+                onClick={handleUpload}
+              >
+                {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : t('submitHomework')}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

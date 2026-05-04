@@ -38,22 +38,33 @@ export default async function RootLayout({
     user = data?.user
 
     if (user) {
-      userRole = user.user_metadata?.role || 'student'
+      // CHANGE 1 - Detect role from profiles.role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single()
       
-      if (userRole === 'professor') {
-        const { data: prof } = await supabase
-          .from('professors')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
-        userName = prof?.full_name ?? null
-      } else {
-        const { data: student } = await supabase
-          .from('students')
-          .select('full_name')
-          .eq('id', user.id)
-          .single()
-        userName = student?.full_name ?? null
+      userRole = profile?.role || user.user_metadata?.role || 'student'
+      userName = profile?.full_name || null
+      
+      // Fallback to legacy tables if profile name is missing
+      if (!userName) {
+        if (userRole === 'professor') {
+          const { data: prof } = await supabase
+            .from('professors')
+            .select('full_name')
+            .eq('id', user.id)
+            .single()
+          userName = prof?.full_name ?? null
+        } else {
+          const { data: student } = await supabase
+            .from('students')
+            .select('full_name')
+            .eq('id', user.id)
+            .single()
+          userName = student?.full_name ?? null
+        }
       }
     }
   } catch (error) {

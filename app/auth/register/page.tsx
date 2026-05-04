@@ -6,14 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { 
-  BookOpen, Loader2, Eye, EyeOff, AlertCircle, 
+import {
+  BookOpen, Loader2, Eye, EyeOff, AlertCircle,
   User, GraduationCap, CheckCircle2
 } from 'lucide-react'
 import Link from 'next/link'
-import { 
-  LEVELS, FILIERES_BY_LEVEL, type Level, type Filiere, 
-  MODULE_ICONS, FILIERE_ARABIC 
+import {
+  LEVELS, FILIERES_BY_LEVEL, type Level, type Filiere,
+  MODULE_ICONS, FILIERE_ARABIC
 } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import { useLanguage } from '@/lib/language-context'
@@ -23,18 +23,18 @@ export default function RegisterPage() {
   const router = useRouter()
   const { language, t } = useLanguage()
   const isAr = language === 'ar'
-  
+
   const [role, setRole] = useState<'student' | 'professor'>('student')
-  const [form, setForm] = useState({ 
-    fullName: '', 
-    email: '', 
-    password: '', 
-    confirmPassword: '', 
-    level: '' as Level | '', 
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    level: '' as Level | '',
     filiere: '' as Filiere | '',
     subject: ''
   })
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -48,30 +48,34 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-    
+
     // Validation
     if (form.fullName.length < 3) {
       setError(t('fullNamePlaceholder'))
       return
     }
-    if (form.password.length < 6) { 
-      setError(t('passwordTooShort'))
-      return 
+
+    // CHANGE 4 - Strong Password Validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/
+    if (!passwordRegex.test(form.password)) {
+      setError('Le mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial (@$!%*?&#)')
+      return
     }
-    if (form.password !== form.confirmPassword) { 
+
+    if (form.password !== form.confirmPassword) {
       setError(t('passwordsNotMatch'))
-      return 
+      return
     }
-    
+
     if (role === 'student') {
-      if (!form.level || !form.filiere) { 
+      if (!form.level || !form.filiere) {
         setError(t('chooseLevel'))
-        return 
+        return
       }
     } else {
-      if (!form.subject) { 
+      if (!form.subject) {
         setError(t('subjectTaught'))
-        return 
+        return
       }
       // Professor email validation (optional, but good practice)
       if (!form.email.toLowerCase().endsWith('@estin.dz')) {
@@ -82,20 +86,22 @@ export default function RegisterPage() {
 
     setLoading(true)
     const supabase = createClient()
-    
+
     try {
       // 1. Supabase Auth Signup
-      const { data, error: signUpError } = await supabase.auth.signUp({ 
-        email: form.email, 
-        password: form.password, 
-        options: { 
-          data: { 
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
             full_name: form.fullName,
             role: role,
-          } 
-        } 
+            level: role === 'student' ? form.level : null,
+            filiere: role === 'student' ? form.filiere : null,
+          }
+        }
       })
-      
+
       if (signUpError) {
         if (signUpError.message.toLowerCase().includes('already registered')) {
           throw new Error('Cet email est déjà utilisé')
@@ -106,35 +112,36 @@ export default function RegisterPage() {
       const user = data.user
       if (!user) throw new Error('Erreur lors de la création du compte')
 
-      const classId = role === 'student' ? `${form.level}-${form.filiere}` : null
+      // 2. Automate Profile Creation based on role/email
+      const isProfessor = form.email.toLowerCase().endsWith('@estin.dz')
+      const profileRole = isProfessor ? 'professor' : 'student'
+      const classId = !isProfessor ? `${form.level}-${form.filiere}` : null
 
-      // 2. Insert into profiles (as requested previously)
+      // Create main profile
       const { error: profileError } = await supabase.from('profiles').insert({
         id: user.id,
         full_name: form.fullName,
-        role: role,
+        role: profileRole,
         class_id: classId,
       })
       if (profileError) throw new Error('Erreur profil: ' + profileError.message)
 
-      // 3. Compatibility layer: Insert into students/professors
-      if (role === 'professor') {
-        const { error: profError } = await supabase.from('professors').insert({ 
-          id: user.id, 
-          email: form.email, 
-          full_name: form.fullName, 
-          subject: form.subject 
+      // Create specific role profile
+      if (isProfessor) {
+        await supabase.from('professors').insert({
+          id: user.id,
+          email: form.email,
+          full_name: form.fullName,
+          subject: form.subject
         })
-        if (profError) throw profError
       } else {
-        const { error: studentError } = await supabase.from('students').insert({ 
-          id: user.id, 
-          email: form.email, 
-          full_name: form.fullName, 
-          level: form.level, 
-          filiere: form.filiere 
+        await supabase.from('students').insert({
+          id: user.id, // We use auth ID for consistency with RLS
+          email: form.email,
+          full_name: form.fullName,
+          level: form.level,
+          filiere: form.filiere
         })
-        if (studentError) throw studentError
       }
 
       setSuccess(true)
@@ -153,7 +160,7 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-[#05050f] flex flex-col items-center justify-center px-4 py-12" dir={isAr ? 'rtl' : 'ltr'}>
-      
+
       {/* Header section from image */}
       <div className="flex flex-col items-center text-center mb-8">
         <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center mb-6 shadow-[0_0_20px_rgba(79,70,229,0.4)]">
@@ -167,7 +174,7 @@ export default function RegisterPage() {
         <div className="bg-[#0f0f1a] border border-white/5 rounded-3xl p-8 shadow-2xl">
           <AnimatePresence mode="wait">
             {success ? (
-              <motion.div 
+              <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -181,11 +188,11 @@ export default function RegisterPage() {
                 <Loader2 className="w-6 h-6 animate-spin mx-auto text-indigo-400" />
               </motion.div>
             ) : (
-              <motion.form 
+              <motion.form
                 key="form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                onSubmit={handleRegister} 
+                onSubmit={handleRegister}
                 className="space-y-6"
               >
                 {/* Role Toggle cards from image */}
@@ -195,8 +202,8 @@ export default function RegisterPage() {
                     onClick={() => setRole('student')}
                     className={cn(
                       "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-300 gap-2",
-                      role === 'student' 
-                        ? "bg-indigo-600/10 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.2)] text-white" 
+                      role === 'student'
+                        ? "bg-indigo-600/10 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.2)] text-white"
                         : "bg-white/5 border-transparent text-white/40 hover:bg-white/[0.07]"
                     )}
                   >
@@ -208,8 +215,8 @@ export default function RegisterPage() {
                     onClick={() => setRole('professor')}
                     className={cn(
                       "flex flex-col items-center justify-center p-6 rounded-2xl border-2 transition-all duration-300 gap-2",
-                      role === 'professor' 
-                        ? "bg-indigo-600/10 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.2)] text-white" 
+                      role === 'professor'
+                        ? "bg-indigo-600/10 border-indigo-600 shadow-[0_0_15px_rgba(79,70,229,0.2)] text-white"
                         : "bg-white/5 border-transparent text-white/40 hover:bg-white/[0.07]"
                     )}
                   >
@@ -222,11 +229,11 @@ export default function RegisterPage() {
                   {/* Full Name */}
                   <div className="space-y-2">
                     <Label className="text-white/60 text-sm">{t('fullName')}</Label>
-                    <Input 
-                      placeholder="Mohamed Amine Benali" 
-                      value={form.fullName} 
-                      onChange={(e) => set('fullName', e.target.value)} 
-                      required 
+                    <Input
+                      placeholder="Mohamed Amine Benali"
+                      value={form.fullName}
+                      onChange={(e) => set('fullName', e.target.value)}
+                      required
                       className="h-12 bg-white/5 border-transparent rounded-xl focus:border-indigo-500 transition-all"
                     />
                   </div>
@@ -234,12 +241,12 @@ export default function RegisterPage() {
                   {/* Email */}
                   <div className="space-y-2">
                     <Label className="text-white/60 text-sm">{t('email')}</Label>
-                    <Input 
-                      type="email" 
-                      placeholder={t('emailPlaceholder')} 
-                      value={form.email} 
-                      onChange={(e) => set('email', e.target.value)} 
-                      required 
+                    <Input
+                      type="email"
+                      placeholder={t('emailPlaceholder')}
+                      value={form.email}
+                      onChange={(e) => set('email', e.target.value)}
+                      required
                       className="h-12 bg-white/5 border-transparent rounded-xl focus:border-indigo-500 transition-all"
                     />
                   </div>
@@ -249,10 +256,10 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label className="text-white/60 text-sm">{t('level')}</Label>
-                        <select 
-                          value={form.level} 
-                          onChange={(e) => { set('level', e.target.value); set('filiere', '') }} 
-                          required 
+                        <select
+                          value={form.level}
+                          onChange={(e) => { set('level', e.target.value); set('filiere', '') }}
+                          required
                           className="h-12 w-full bg-white/5 border-transparent rounded-xl px-4 text-sm text-white focus:outline-none focus:border-indigo-500 appearance-none"
                         >
                           <option value="" className="bg-[#0f0f1a]">{t('chooseLevel')}</option>
@@ -261,10 +268,10 @@ export default function RegisterPage() {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-white/60 text-sm">{t('filiere')}</Label>
-                        <select 
-                          value={form.filiere} 
-                          onChange={(e) => set('filiere', e.target.value)} 
-                          required 
+                        <select
+                          value={form.filiere}
+                          onChange={(e) => set('filiere', e.target.value)}
+                          required
                           disabled={!form.level}
                           className="h-12 w-full bg-white/5 border-transparent rounded-xl px-4 text-sm text-white focus:outline-none focus:border-indigo-500 appearance-none disabled:opacity-30"
                         >
@@ -280,10 +287,10 @@ export default function RegisterPage() {
                   ) : (
                     <div className="space-y-2">
                       <Label className="text-white/60 text-sm">{t('subjectTaught')}</Label>
-                      <select 
-                        value={form.subject} 
-                        onChange={(e) => set('subject', e.target.value)} 
-                        required 
+                      <select
+                        value={form.subject}
+                        onChange={(e) => set('subject', e.target.value)}
+                        required
                         className="h-12 w-full bg-white/5 border-transparent rounded-xl px-4 text-sm text-white focus:outline-none focus:border-indigo-500 appearance-none"
                       >
                         <option value="" className="bg-[#0f0f1a]">{t('searchPlaceholder')}</option>
@@ -296,17 +303,17 @@ export default function RegisterPage() {
                   <div className="space-y-2">
                     <Label className="text-white/60 text-sm">{t('password')}</Label>
                     <div className="relative">
-                      <Input 
-                        type={showPassword ? 'text' : 'password'} 
-                        placeholder="Min. 6 caractères" 
-                        value={form.password} 
-                        onChange={(e) => set('password', e.target.value)} 
-                        required 
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Min. 6 caractères"
+                        value={form.password}
+                        onChange={(e) => set('password', e.target.value)}
+                        required
                         className="h-12 bg-white/5 border-transparent rounded-xl focus:border-indigo-500 pr-10 transition-all"
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => setShowPassword(!showPassword)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-white transition-colors"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -317,12 +324,12 @@ export default function RegisterPage() {
                   {/* Confirm Password */}
                   <div className="space-y-2">
                     <Label className="text-white/60 text-sm">{t('confirmPassword')}</Label>
-                    <Input 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={form.confirmPassword} 
-                      onChange={(e) => set('confirmPassword', e.target.value)} 
-                      required 
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={form.confirmPassword}
+                      onChange={(e) => set('confirmPassword', e.target.value)}
+                      required
                       className="h-12 bg-white/5 border-transparent rounded-xl focus:border-indigo-500 transition-all"
                     />
                   </div>
@@ -335,8 +342,8 @@ export default function RegisterPage() {
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={loading}
                   className="w-full h-14 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl transition-all shadow-[0_4px_15px_rgba(79,70,229,0.3)] active:scale-95"
                 >

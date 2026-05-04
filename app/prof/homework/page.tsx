@@ -29,7 +29,7 @@ export default function ProfHomeworkPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  
+
   const [form, setForm] = useState({ title: '', subject: '', description: '', dueDate: '', pdfUrl: '' })
 
   const loadHomework = useCallback(async () => {
@@ -61,7 +61,7 @@ export default function ProfHomeworkPage() {
       setError(t('pleaseUploadPDF'))
       return
     }
-    
+
     setSubmitting(true)
     setError('')
     setSuccess(false)
@@ -87,7 +87,7 @@ export default function ProfHomeworkPage() {
       setSuccess(true)
       setForm({ title: '', subject: '', description: '', dueDate: '', pdfUrl: '' })
       await loadHomework()
-      
+
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
       console.error('Insert error:', err)
@@ -192,8 +192,8 @@ export default function ProfHomeworkPage() {
 
               <div className="space-y-2">
                 <Label>{t('homeworkFile')}</Label>
-                <PDFUpload 
-                  bucket="homework" 
+                <PDFUpload
+                  bucket="homework"
                   onUpload={url => setForm({ ...form, pdfUrl: url })}
                 />
               </div>
