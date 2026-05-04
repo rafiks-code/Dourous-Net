@@ -252,17 +252,6 @@ export default function ProfCorrectionsPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label>{t('subject')}</Label>
-                <Input
-                  required
-                  value={generalForm.subject}
-                  onChange={e => setGeneralForm({ ...generalForm, subject: e.target.value })}
-                  placeholder={t('subjectExamplePlaceholder')}
-                  className="bg-white/5 border-white/10"
-                />
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>{t('level')}</Label>
@@ -289,6 +278,17 @@ export default function ProfCorrectionsPage() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t('subject')}</Label>
+                <Input
+                  required
+                  value={generalForm.subject}
+                  onChange={e => setGeneralForm({ ...generalForm, subject: e.target.value })}
+                  placeholder={t('subjectExamplePlaceholder')}
+                  className="bg-white/5 border-white/10"
+                />
               </div>
 
               <div className="space-y-2">

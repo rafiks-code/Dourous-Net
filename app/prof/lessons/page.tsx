@@ -28,8 +28,25 @@ export default function ProfLessonsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  
-  const [form, setForm] = useState({ title: '', subject: '', description: '', pdfUrl: '' })
+
+  const [form, setForm] = useState({ title: '', subject: '', description: '', pdfUrl: '', level: '', filiere: '' })
+
+  const LEVELS = ['1AS', '2AS', '3AS']
+  const FILIERES: Record<string, string[]> = {
+    '1AS': ['TC Sciences', 'TC Lettres'],
+    '2AS': ['Sciences Expérimentales', 'Mathématiques', 'Lettres et Philosophie', 'Langues Étrangères'],
+    '3AS': ['Sciences Expérimentales', 'Mathématiques', 'Technique Mathématique', 'Lettres et Philosophie', 'Langues Étrangères', 'Gestion et Économie'],
+  }
+  const FILIERE_MATIERES: Record<string, string[]> = {
+    'TC Sciences': ['Mathématiques', 'Physique', 'Sciences Naturelles', 'Informatique', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique'],
+    'TC Lettres': ['Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Informatique', 'Mathématiques'],
+    'Sciences Expérimentales': ['Mathématiques', 'Physique', 'Sciences Naturelles', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Philosophie'],
+    'Mathématiques': ['Mathématiques', 'Physique', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Philosophie'],
+    'Technique Mathématique': ['Mathématiques', 'Physique', 'Génie Civil', 'Génie Mécanique', 'Génie Électrique', 'Génie des Procédés', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Philosophie'],
+    'Lettres et Philosophie': ['Arabe', 'Philosophie', 'Histoire-Géo', 'Français', 'Anglais', 'Éducation Islamique', 'Mathématiques'],
+    'Langues Étrangères': ['Arabe', 'Français', 'Anglais', 'Espagnol', 'Allemand', 'Philosophie', 'Histoire-Géo', 'Éducation Islamique', 'Mathématiques'],
+    'Gestion et Économie': ['Mathématiques', 'Comptabilité', 'Économie', 'Droit', 'Arabe', 'Français', 'Anglais', 'Histoire-Géo', 'Éducation Islamique', 'Philosophie']
+  }
 
   const loadLessons = useCallback(async () => {
     setLoading(true)
@@ -60,7 +77,7 @@ export default function ProfLessonsPage() {
       setError(t('pleaseUploadPDF'))
       return
     }
-    
+
     setSubmitting(true)
     setError('')
     setSuccess(false)
@@ -83,9 +100,9 @@ export default function ProfLessonsPage() {
       if (insertError) throw insertError
 
       setSuccess(true)
-      setForm({ title: '', subject: '', description: '', pdfUrl: '' })
+      setForm({ title: '', subject: '', description: '', pdfUrl: '', level: '', filiere: '' })
       await loadLessons()
-      
+
       setTimeout(() => setSuccess(false), 3000)
     } catch (err: any) {
       console.error('Insert error:', err)
@@ -151,16 +168,49 @@ export default function ProfLessonsPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('level')}</Label>
+                  <select
+                    value={form.level}
+                    onChange={e => setForm({ ...form, level: e.target.value, filiere: '', subject: '' })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  >
+                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
+                    {LEVELS.map(l => <option key={l} value={l} className="bg-[#0a0a1a]">{l}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('filiere')}</Label>
+                  <select
+                    value={form.filiere}
+                    onChange={e => setForm({ ...form, filiere: e.target.value, subject: '' })}
+                    disabled={!form.level}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-40"
+                  >
+                    <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
+                    {form.level && FILIERES[form.level]?.map(f => (
+                      <option key={f} value={f} className="bg-[#0a0a1a]">{f}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="subject">{t('subject')}</Label>
-                <Input
+                <select
                   id="subject"
                   value={form.subject}
                   onChange={e => setForm({ ...form, subject: e.target.value })}
-                  placeholder={t('subject') + '...'}
+                  disabled={!form.filiere}
                   required
-                  className="bg-white/5 border-white/10"
-                />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-40"
+                >
+                  <option value="" className="bg-[#0a0a1a]">{t('choose')}</option>
+                  {form.filiere && FILIERE_MATIERES[form.filiere]?.map(m => (
+                    <option key={m} value={m} className="bg-[#0a0a1a]">{m}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">
@@ -176,8 +226,8 @@ export default function ProfLessonsPage() {
 
               <div className="space-y-2">
                 <Label>{t('lessonPDF')}</Label>
-                <PDFUpload 
-                  bucket="lessons" 
+                <PDFUpload
+                  bucket="lessons"
                   onUpload={url => setForm({ ...form, pdfUrl: url })}
                 />
               </div>
