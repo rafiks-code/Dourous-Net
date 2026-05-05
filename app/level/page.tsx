@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { LEVELS, STORAGE_KEYS, type Level } from '@/lib/constants'
 import { setToStorage } from '@/lib/utils'

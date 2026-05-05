@@ -67,21 +67,35 @@ export default function ModulePage() {
     if (!user) { router.push('/auth/login'); return }
     setUserId(user.id)
 
-    // 1. Fetch courses (lessons) for this module
-    const { data: coursesData } = await supabase
+    const moduleNameLower = currentModule.toLowerCase().trim()
+
+    // 1. Fetch ALL lessons — filter client-side by subject (level/filiere may be NULL)
+    const { data: allLessons } = await supabase
       .from('lessons')
       .select('*')
-      .eq('module', currentModule)
       .order('created_at', { ascending: false })
-    setCourses(coursesData ?? [])
 
-    // 2. Fetch homework for this module
-    const { data: hwData } = await supabase
+    const filteredLessons = (allLessons ?? []).filter((lesson: any) => {
+      const s = (lesson.subject ?? '').toLowerCase().trim()
+      return s === moduleNameLower ||
+             s.includes(moduleNameLower) ||
+             moduleNameLower.includes(s)
+    })
+    setCourses(filteredLessons)
+
+    // 2. Fetch ALL homework — filter client-side by subject (level/filiere may be NULL)
+    const { data: allHomework } = await supabase
       .from('homework')
       .select('*')
-      .eq('module', currentModule)
       .order('due_date', { ascending: true })
-    setHomework(hwData ?? [])
+
+    const filteredHomework = (allHomework ?? []).filter((hw: any) => {
+      const s = (hw.subject ?? '').toLowerCase().trim()
+      return s === moduleNameLower ||
+             s.includes(moduleNameLower) ||
+             moduleNameLower.includes(s)
+    })
+    setHomework(filteredHomework)
 
     // Get student row for ID consistency
     const { data: studentData } = await supabase
@@ -171,9 +185,18 @@ export default function ModulePage() {
       // 4. Get URL and insert
       const { data: { publicUrl } } = supabase.storage.from('submissions').getPublicUrl(uploadData.path)
 
+      // Find homework matching this module by subject
+      const moduleNameLower = currentModule.toLowerCase().trim()
+      const matchedHomework = homework.find((hw: any) => {
+        const s = (hw.subject ?? '').toLowerCase().trim()
+        return s === moduleNameLower ||
+               s.includes(moduleNameLower) ||
+               moduleNameLower.includes(s)
+      })
+
       const { error: sessionError } = await supabase.from('submissions').insert({
         student_id: studentData.id,
-        homework_id: homework[0]?.id || null,
+        homework_id: matchedHomework?.id ?? null,
         file_url: publicUrl,
         file_name: file.name,
         status: 'soumis',

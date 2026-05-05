@@ -105,10 +105,10 @@ export default function ProfLessonsPage() {
           title: form.title,
           content: form.description,
           subject: form.subject,
-          module: form.subject,
+          level: form.level,
+          filiere: form.filiere,
           file_url: form.pdfUrl,
           prof_id: user.id,
-          niveau: form.level,
           created_at: new Date().toISOString()
         })
 
