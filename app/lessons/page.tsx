@@ -31,7 +31,7 @@ export default function LessonsPage() {
         .from('lessons')
         .select('*')
         .order('created_at', { ascending: false })
-      
+
       if (error) {
         console.error('Error fetching lessons:', error)
       } else {
@@ -118,7 +118,7 @@ export default function LessonsPage() {
               >
                 {/* Card Top Decoration */}
                 <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 opacity-30 group-hover:opacity-100 transition-opacity" />
-                
+
                 <div className="p-6 flex-1 flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     {lesson.subject && (

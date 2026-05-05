@@ -164,6 +164,7 @@ export default function ProfHomeworkPage() {
           file_url: form.pdfUrl,
           due_date: form.dueDate,
           prof_id: user.id,
+          niveau: form.level,
           created_at: new Date().toISOString()
         })
 
@@ -240,24 +241,39 @@ export default function ProfHomeworkPage() {
 
 
               {/* Matière — locked to professor's own subject */}
-              <div className="space-y-2">
-                <Label>{t('subject')}</Label>
-                {profSubject ? (
-                  <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-blue-300 font-semibold flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-400 inline-block" />
-                    {profSubject}
-                    <span className="ml-auto text-white/20 text-xs">{t('profSubject')}</span>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={form.subject}
-                    onChange={e => setForm({ ...form, subject: e.target.value })}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>{t('subject')}</Label>
+                  {profSubject ? (
+                    <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-blue-300 font-semibold flex items-center gap-2">
+                      {profSubject}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.subject}
+                      onChange={e => setForm({ ...form, subject: e.target.value })}
+                      required
+                      placeholder={t('subjectPlaceholder')}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{t('level')}</Label>
+                  <select
+                    value={form.level}
+                    onChange={e => setForm({ ...form, level: e.target.value })}
                     required
-                    placeholder={t('subjectPlaceholder')}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                  />
-                )}
+                  >
+                    <option value="" className="bg-[#0a0a1a]">Choisir</option>
+                    {LEVELS.map(l => (
+                      <option key={l} value={l} className="bg-[#0a0a1a]">{l}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div className="space-y-2">

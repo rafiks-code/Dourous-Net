@@ -31,8 +31,8 @@ export default function ProfilePage() {
         }
         setUser(user)
 
-        const userRole = user.user_metadata?.role === 'professor' 
-          ? 'professor' 
+        const userRole = user.user_metadata?.role === 'professor'
+          ? 'professor'
           : 'student'
         setRole(userRole)
 
@@ -68,10 +68,10 @@ export default function ProfilePage() {
     )
   }
 
-  const fullName = dbUser?.full_name 
-    || user?.user_metadata?.full_name 
+  const fullName = dbUser?.full_name
+    || user?.user_metadata?.full_name
     || 'Utilisateur'
-  const displayRole = role === 'professor' 
+  const displayRole = role === 'professor'
     ? t('professorRole') || 'Professeur'
     : t('student') || 'Étudiant'
   const level = dbUser?.level || user?.user_metadata?.level || ''
@@ -86,7 +86,7 @@ export default function ProfilePage() {
     .slice(0, 2)
 
   return (
-    <div 
+    <div
       className="page-container max-w-4xl mx-auto py-12"
       dir={language === 'ar' ? 'rtl' : 'ltr'}
     >
@@ -128,12 +128,12 @@ export default function ProfilePage() {
               <div className="flex-1 text-center sm:text-left">
                 <h2 className="text-2xl font-black text-white">{fullName}</h2>
                 <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
-                  <Badge 
-                    variant={role === 'professor' ? 'success' : 'info'} 
+                  <Badge
+                    variant={role === 'professor' ? 'success' : 'info'}
                     className="gap-1"
                   >
-                    {role === 'professor' 
-                      ? <Shield className="w-3 h-3" /> 
+                    {role === 'professor'
+                      ? <Shield className="w-3 h-3" />
                       : <GraduationCap className="w-3 h-3" />
                     }
                     {displayRole}
@@ -148,8 +148,8 @@ export default function ProfilePage() {
               </div>
 
               <Link href="/settings">
-                <Button 
-                  variant="secondary" 
+                <Button
+                  variant="secondary"
                   className="gap-2 w-full sm:w-auto mt-4 sm:mt-0"
                 >
                   <Edit2 className="w-4 h-4" />
@@ -183,7 +183,7 @@ export default function ProfilePage() {
                 {/* Role */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
                   <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                    {role === 'professor' 
+                    {role === 'professor'
                       ? <Shield className="w-5 h-5 text-purple-400" />
                       : <GraduationCap className="w-5 h-5 text-purple-400" />
                     }

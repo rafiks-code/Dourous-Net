@@ -51,7 +51,7 @@ export default function HomeworkPage() {
       .from('homework')
       .select('*')
       .order('created_at', { ascending: false })
-    
+
     // 2. Fetch Student Submissions
     const { data: subData } = await supabase
       .from('submissions')
@@ -65,7 +65,7 @@ export default function HomeworkPage() {
       .eq('student_id', user.id)
 
     setHomework(hwData ?? [])
-    
+
     const subMap: Record<string, Submission> = {}
     subData?.forEach(s => subMap[s.homework_id] = s)
     setSubmissions(subMap)
@@ -84,13 +84,13 @@ export default function HomeworkPage() {
   const getStatus = (hw: Homework) => {
     const submission = submissions[hw.id]
     if (submission) return { label: t('done'), color: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20', icon: CheckCircle2 }
-    
+
     if (hw.due_date) {
       const today = new Date()
       const due = new Date(hw.due_date)
       if (due < today) return { label: t('overdue'), color: 'bg-red-500/20 text-red-400 border-red-500/20', icon: AlertCircle }
     }
-    
+
     return { label: t('todo'), color: 'bg-amber-500/20 text-amber-400 border-amber-500/20', icon: Clock }
   }
 
@@ -170,7 +170,7 @@ export default function HomeworkPage() {
                           {t('viewHomework')}
                         </Button>
                       )}
-                      
+
                       {!submissions[hw.id] ? (
                         <Link href={`/homework/${hw.id}/submit`} className="w-full">
                           <Button variant="gradient" className="rounded-xl h-11 w-full gap-2">

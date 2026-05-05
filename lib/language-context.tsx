@@ -1,12 +1,9 @@
 'use client'
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import fr from '../public/locales/fr.json'
-import ar from '../public/locales/ar.json'
+import { translations } from './translations'
 
 type Language = 'fr' | 'ar'
 type Direction = 'ltr' | 'rtl'
-
-const translations: Record<Language, any> = { fr, ar }
 
 interface LanguageContextType {
   language: Language
@@ -43,14 +40,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }
 
   const t = (key: string): string => {
-    const activeTranslations = translations[language]
+    const activeTranslations = (translations as any)[language]
     const value = activeTranslations[key]
     
     if (!value) {
       console.warn(`Missing translation key: "${key}"`)
       // Fallback to FR if missing in AR
-      if (language === 'ar' && translations['fr'][key]) {
-        return translations['fr'][key]
+      if (language === 'ar' && (translations as any)['fr'][key]) {
+        return (translations as any)['fr'][key]
       }
       return key
     }

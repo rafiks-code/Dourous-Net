@@ -55,6 +55,7 @@ export default function ProfCorrectionsPage() {
     filiere: '',
     file: null as File | null,
   })
+  const [profModule, setProfModule] = useState('')
 
   const LEVELS = ['1AS', '2AS', '3AS']
   const FILIERES: Record<string, string[]> = {
@@ -88,6 +89,16 @@ export default function ProfCorrectionsPage() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      const { data: profData } = await supabase
+        .from('professors')
+        .select('module, subject')
+        .eq('id', user.id)
+        .single()
+      
+      const moduleVal = profData?.module || profData?.subject || ''
+      setProfModule(moduleVal)
+      setGeneralForm(prev => ({ ...prev, subject: moduleVal }))
 
       const { data } = await supabase
         .from('corrections')
@@ -126,7 +137,8 @@ export default function ProfCorrectionsPage() {
           pdf_url: form.pdfUrl,
           title: `Correction: ${selectedSub.homework.title} - ${selectedSub.student.full_name}`,
           grade: parseFloat(form.grade),
-          comment: form.comment
+          comment: form.comment,
+          subject: profModule || generalForm.subject
         })
 
       if (corrError) throw corrError
@@ -180,7 +192,7 @@ export default function ProfCorrectionsPage() {
         .insert({
           professor_id: user.id,
           title: generalForm.title,
-          subject: generalForm.subject,
+          subject: profModule || generalForm.subject,
           level: generalForm.level,
           filiere: generalForm.filiere,
           pdf_url: urlData.publicUrl,
@@ -189,7 +201,7 @@ export default function ProfCorrectionsPage() {
       if (insertError) throw insertError
 
       setSuccessMsg(t('correctionPublished'))
-      setGeneralForm({ title: '', subject: '', level: '', filiere: '', file: null })
+      setGeneralForm({ title: '', subject: profModule, level: '', filiere: '', file: null })
       loadCorrections()
       setTimeout(() => setSuccessMsg(''), 3000)
 
@@ -280,16 +292,10 @@ export default function ProfCorrectionsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>{t('subject')}</Label>
-                <Input
-                  required
-                  value={generalForm.subject}
-                  onChange={e => setGeneralForm({ ...generalForm, subject: e.target.value })}
-                  placeholder={t('subjectExamplePlaceholder')}
-                  className="bg-white/5 border-white/10"
-                />
-              </div>
+                <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                  <p className="text-xs text-white/40 uppercase font-bold tracking-wider mb-1">{t('subject')}</p>
+                  <p className="text-white font-bold">{profModule || '—'}</p>
+                </div>
 
               <div className="space-y-2">
                 <Label>{t('pdfFile')}</Label>

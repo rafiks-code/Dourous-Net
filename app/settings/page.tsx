@@ -222,13 +222,9 @@ export default function SettingsPage() {
                     value={profileForm.subject}
                     onChange={e => setProfileForm({ ...profileForm, subject: e.target.value })}
                     className="flex h-10 w-full rounded-md border border-white/20 bg-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled
                   >
-                    <option value="" className="bg-[#07071a]">
-                      {language === 'ar' ? 'اختر المادة' : 'Sélectionner'}
-                    </option>
-                    {Object.keys(MODULE_ICONS).map(m => (
-                      <option key={m} value={m} className="bg-[#07071a]">{m}</option>
-                    ))}
+                    <option value={profileForm.subject} className="bg-[#07071a]">{profileForm.subject}</option>
                   </select>
                 </div>
               )}

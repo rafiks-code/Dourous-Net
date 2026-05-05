@@ -49,7 +49,7 @@ export default function ProfGradesPage() {
         .from('students')
         .select('id, full_name, level, filiere')
         .order('full_name')
-      setStudents(studentsData ?? []) // level/filiere used only for dropdown display, not inserted into grades
+      setStudents(studentsData ?? [])
 
       const { data: gradesData, error: gradesErr } = await supabase
         .from('grades')
@@ -72,12 +72,12 @@ export default function ProfGradesPage() {
     setError('')
 
     if (!form.student_id || !form.module.trim() || !form.grade) {
-      setError('Veuillez remplir tous les champs obligatoires.')
+      setError(t('fillRequiredFields') || 'Veuillez remplir tous les champs obligatoires.')
       return
     }
     const gradeNum = parseFloat(form.grade)
     if (isNaN(gradeNum) || gradeNum < 0 || gradeNum > 20) {
-      setError('La note doit être entre 0 et 20.')
+      setError(t('gradeRangeError') || 'La note doit être entre 0 et 20.')
       return
     }
 
@@ -98,21 +98,21 @@ export default function ProfGradesPage() {
 
       if (insertError) throw insertError
 
-      setSuccess('Note ajoutée avec succès !')
-      setForm({ student_id: '', module: '', grade: '' })
+      setSuccess(t('gradeAddedSuccess') || 'Note ajoutée avec succès !')
+      setForm({ ...form, student_id: '', grade: '' })
       setShowForm(false)
       loadData()
       setTimeout(() => setSuccess(''), 4000)
 
     } catch (err: any) {
-      setError(err.message || "Erreur lors de l'ajout.")
+      setError(err.message || t('errorOccurred'))
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette note ?')) return
+    if (!confirm(t('deleteGradeConfirm') || 'Supprimer cette note ?')) return
     try {
       const supabase = createClient()
       await supabase.from('grades').delete().eq('id', id)
@@ -142,7 +142,7 @@ export default function ProfGradesPage() {
             <Star className="w-8 h-8 text-yellow-400" />
             {t('gradesTitle')}
           </h1>
-          <p className="text-white/50 mt-1">{t('manageHomeworkDesc')}</p>
+          <p className="text-white/50 mt-1">{t('gradesSubtitle')}</p>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setError('') }}
@@ -167,7 +167,7 @@ export default function ProfGradesPage() {
           <div className="glass-card p-6">
             <h2 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
               <Plus className="w-5 h-5 text-indigo-400" />
-              Nouvelle note
+              {t('new')}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -181,7 +181,7 @@ export default function ProfGradesPage() {
                   value={form.student_id}
                   onChange={e => setForm({ ...form, student_id: e.target.value })}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-indigo-500/50 transition-all">
-                  <option value="" className="bg-[#1a1a2e]">Choisir un étudiant...</option>
+                  <option value="" className="bg-[#1a1a2e]">{t('chooseStudent')}</option>
                   {students.map(s => (
                     <option key={s.id} value={s.id} className="bg-[#1a1a2e]">
                       {s.full_name}{s.level ? ` — ${s.level}` : ''}{s.filiere ? ` ${s.filiere}` : ''}
@@ -193,7 +193,7 @@ export default function ProfGradesPage() {
               {/* Module — locked to professor's own subject */}
               <div>
                 <label className="text-white/50 text-sm mb-1.5 block">
-                  Module / Matière *
+                  {t('subject')} *
                 </label>
                 {profSubject ? (
                   <div className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-indigo-300 font-semibold flex items-center gap-2">
@@ -216,7 +216,7 @@ export default function ProfGradesPage() {
               {/* Grade */}
               <div>
                 <label className="text-white/50 text-sm mb-1.5 block">
-                  Note (sur 20) *
+                  {t('grade')} (sur 20) *
                 </label>
                 <input
                   type="number"
@@ -250,7 +250,7 @@ export default function ProfGradesPage() {
                   disabled={submitting}
                   className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   {submitting
-                    ? <><Loader2 className="w-4 h-4 animate-spin" /> Ajout...</>
+                    ? <><Loader2 className="w-4 h-4 animate-spin" /> {t('adding')}</>
                     : <><Star className="w-4 h-4" /> {t('addGrade')}</>}
                 </button>
               </div>
@@ -263,7 +263,7 @@ export default function ProfGradesPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-white font-bold text-lg flex items-center gap-2">
               <Star className="w-5 h-5 text-yellow-400" />
-              Notes publiées
+              {t('notes_publiees')}
             </h2>
             <span className="bg-indigo-500/20 text-indigo-300 text-xs px-2.5 py-1 rounded-full font-medium">
               {grades.length}
