@@ -88,7 +88,7 @@ export default function ProfDashboardPage() {
           .from('profiles')
           .select('id, full_name')
           .in('id', studentIds)
-        
+
         const nameMap = Object.fromEntries(studentData?.map(s => [s.id, s.full_name]) || [])
         const enriched = recent.map(r => ({
           ...r,
@@ -98,7 +98,7 @@ export default function ProfDashboardPage() {
       } else {
         setRecentHomework([])
       }
-      
+
       setLoading(false)
     }
 
@@ -166,7 +166,7 @@ export default function ProfDashboardPage() {
               <FileText className="w-5 h-5 text-indigo-400" />
               {t('pendingSubmissions')}
             </h2>
-            
+
             {recentHomework.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -185,9 +185,9 @@ export default function ProfDashboardPage() {
                         <td className="py-4 px-4 text-white/60">{sub.homework?.title}</td>
                         <td className="py-4 px-4 text-white/40 text-sm">{formatDate(sub.created_at)}</td>
                         <td className="py-4 px-4 text-center">
-                          <a 
-                            href={sub.file_url} 
-                            target="_blank" 
+                          <a
+                            href={sub.file_url}
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all text-xs font-bold"
                           >
