@@ -51,7 +51,7 @@ export default function SubmitHomeworkPage() {
         .select('id')
         .eq('email', user.email)
         .single()
-      
+
       if (studentError || !studentData) {
         console.log('Email cherché:', user.email)
         console.log('Erreur Supabase:', studentError)

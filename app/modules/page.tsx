@@ -38,7 +38,7 @@ export default function ModulesPage() {
             .select('level, filiere')
             .eq('id', user.id)
             .single()
-          
+
           if (student) {
             userLevel = student.level as Level
             userFiliere = student.filiere as Filiere

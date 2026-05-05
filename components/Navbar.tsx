@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
-  LogOut, LayoutDashboard, BookOpen, Bell, Search,
+  LogOut, LayoutDashboard, BookOpen, Search,
   Menu, X, Check, FileText, ClipboardList, GraduationCap, MessageSquare, Globe, User, Settings, CheckCircle, Star
 } from 'lucide-react'
 import Link from 'next/link'
@@ -24,7 +24,6 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
-  const [showNotifications, setShowNotifications] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
 
@@ -35,51 +34,6 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<{ id: string, title: string, type: 'lessons' | 'homework', url: string }[]>([])
   const [isSearching, setIsSearching] = useState(false)
-
-  // Notifications state
-  const [notifications, setNotifications] = useState<{ id: string; title: string; message: string; is_read: boolean; read: boolean; created_at: string }[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-
-  // Fetch notifications
-  useEffect(() => {
-    if (!userId) return
-
-    const fetchNotifications = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(10)
-
-        if (!error && data) {
-          setNotifications(data)
-          const unread = data.filter(n => n.is_read === false || n.read === false).length
-          setUnreadCount(unread)
-        }
-      } catch (err) {
-        console.error('Error fetching notifications:', err)
-      }
-    }
-
-    fetchNotifications()
-  }, [userId, supabase])
-
-  const handleMarkAllRead = async () => {
-    if (!userId) return
-    try {
-      setNotifications(notifications.map(n => ({ ...n, is_read: true, read: true })))
-      setUnreadCount(0)
-      await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('user_id', userId)
-        .eq('is_read', false)
-    } catch (err) {
-      console.error('Error marking notifications as read', err)
-    }
-  }
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -204,86 +158,8 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
               {language === 'fr' ? 'FR' : 'ع'}
             </Button>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-white/70 hover:text-white rounded-full"
-              onClick={() => setIsSearchOpen(true)}
-            >
-              <Search className="h-5 w-5" />
-            </Button>
-
             {userEmail ? (
               <>
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-white/70 hover:text-white rounded-full"
-                    onClick={() => {
-                      setShowNotifications(!showNotifications)
-                      setIsProfileDropdownOpen(false)
-                    }}
-                  >
-                    <Bell className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-2 right-2 h-4 w-4 flex items-center justify-center rounded-full bg-red-500 ring-2 ring-[#0a0a1a] text-[9px] font-bold">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </Button>
-
-                  {showNotifications && (
-                    <div className={cn(
-                      "absolute mt-2 w-80 bg-[#12122a] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-4",
-                      language === 'ar' ? "left-0" : "right-0"
-                    )}>
-                      <div className="flex items-center justify-between p-4 border-b border-white/10">
-                        <h3 className="font-semibold text-white">{t('notifications')}</h3>
-                        {unreadCount > 0 && (
-                          <button
-                            onClick={handleMarkAllRead}
-                            className="text-xs text-indigo-400 hover:text-indigo-300"
-                          >
-                            {t('markAllRead')}
-                          </button>
-                        )}
-                      </div>
-                      <div className="max-h-80 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="p-6 text-center text-white/50 text-sm">
-                            {t('noNotifications')}
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-white/5">
-                            {notifications.map((notif) => {
-                              const isUnread = notif.is_read === false || notif.read === false
-                              return (
-                                <div key={notif.id} className={cn("p-4 transition-colors hover:bg-white/5", isUnread ? "bg-indigo-500/5" : "")}>
-                                  <div className="flex gap-3">
-                                    <div className={cn("mt-1 w-2 h-2 rounded-full flex-shrink-0", isUnread ? "bg-indigo-500" : "bg-transparent")} />
-                                    <div>
-                                      <p className="text-sm text-white/90">{notif.title || notif.message}</p>
-                                      {notif.title && notif.message && (
-                                        <p className="text-xs text-white/50 mt-1 line-clamp-2">{notif.message}</p>
-                                      )}
-                                      <p className="text-[10px] text-white/40 mt-2">
-                                        {new Date(notif.created_at).toLocaleDateString(language === 'ar' ? 'ar-DZ' : 'fr-FR', {
-                                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                                        })}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 <div className="hidden sm:block h-6 w-px bg-white/10 mx-1"></div>
 
                 <div className="relative">
@@ -291,7 +167,6 @@ export function Navbar({ userEmail, userName, userRole, userId }: NavbarProps) {
                     className="h-8 w-8 ml-1 sm:ml-0 border border-white/10 cursor-pointer hover:ring-2 ring-indigo-500 transition-all"
                     onClick={() => {
                       setIsProfileDropdownOpen(!isProfileDropdownOpen)
-                      setShowNotifications(false)
                     }}
                   >
                     <AvatarFallback className="text-xs bg-indigo-500/20 text-indigo-200">{initials}</AvatarFallback>
