@@ -312,5 +312,10 @@
   "loadingSubmissions": "Chargement des rendus...",
   "alreadyCorrected": "Déjà corrigé",
   "closePanel": "Fermer",
-  "submissionsFor": "Rendus pour"
+  "submissionsFor": "Rendus pour",
+  "total": "total",
+  "totalLessons": "Cours publiés",
+  "totalHomework": "Devoirs publiés",
+  "corrected": "Corrigé",
+  "pending": "En attente"
 }

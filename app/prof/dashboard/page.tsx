@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { BookOpen, Users, ClipboardList, CheckCircle2, TrendingUp, Loader2, FileText, ExternalLink } from 'lucide-react'
+import { BookOpen, ClipboardList, CheckCircle, Clock, TrendingUp, Loader2, FileText, ExternalLink } from 'lucide-react'
 import { useLanguage } from '@/lib/language-context'
 import { formatDate } from '@/lib/utils'
 
@@ -14,7 +14,7 @@ export default function ProfDashboardPage() {
 
   const [user, setUser] = useState<any>(null)
   const [prof, setProf] = useState<any>(null)
-  const [stats, setStats] = useState({ students: 0, lessons: 0, pending: 0, homeworkSubmissions: 0 })
+  const [stats, setStats] = useState({ lessonsCount: 0, homeworkCount: 0, correctedCount: 0, pendingCount: 0 })
   const [recentHomework, setRecentHomework] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -34,21 +34,43 @@ export default function ProfDashboardPage() {
         .single()
       setProf(profData)
 
-      // Stats
-      const { count: sCount } = await supabase.from('students').select('*', { count: 'exact', head: true })
-      const { count: lCount } = await supabase.from('lessons').select('*', { count: 'exact', head: true }).eq('prof_id', user.id)
-      
-      // CHANGE 3 - Homework submissions count
-      const { count: hsCount } = await supabase
+      // Count lessons published by this professor
+      const { count: lessonsCount } = await supabase
+        .from('lessons')
+        .select('*', { count: 'exact', head: true })
+        .eq('prof_id', user.id)
+
+      // Count homework published by this professor
+      const { count: homeworkCount } = await supabase
+        .from('homework')
+        .select('*', { count: 'exact', head: true })
+        .eq('prof_id', user.id)
+
+      // Count corrected submissions for this professor's homework
+      const { data: profHomework } = await supabase
+        .from('homework')
+        .select('id')
+        .eq('prof_id', user.id)
+
+      const homeworkIds = (profHomework ?? []).map(h => h.id)
+
+      const { count: correctedCount } = await supabase
         .from('submissions')
-        .select('id, homework!inner(prof_id)', { count: 'exact', head: true })
-        .eq('homework.prof_id', user.id)
+        .select('*', { count: 'exact', head: true })
+        .in('homework_id', homeworkIds.length > 0 ? homeworkIds : ['none'])
+        .eq('status', 'corrigé')
+
+      const { count: pendingCount } = await supabase
+        .from('submissions')
+        .select('*', { count: 'exact', head: true })
+        .in('homework_id', homeworkIds.length > 0 ? homeworkIds : ['none'])
+        .eq('status', 'soumis')
 
       setStats({
-        students: sCount || 0,
-        lessons: lCount || 0,
-        pending: 0, // Legacy field
-        homeworkSubmissions: hsCount || 0
+        lessonsCount: lessonsCount || 0,
+        homeworkCount: homeworkCount || 0,
+        correctedCount: correctedCount || 0,
+        pendingCount: pendingCount || 0
       })
 
       // Recent Submissions with Student name and File link
@@ -102,38 +124,38 @@ export default function ProfDashboardPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-indigo-500">
             <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-              <Users className="w-6 h-6" />
+              <BookOpen className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{stats.students}</p>
-              <p className="text-xs text-white/40">{t('totalStudents')}</p>
+              <p className="text-3xl font-black text-white">{stats.lessonsCount}</p>
+              <p className="text-xs text-white/40">{t('totalLessons')}</p>
+            </div>
+          </div>
+          <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-violet-500">
+            <div className="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400">
+              <ClipboardList className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-3xl font-black text-white">{stats.homeworkCount}</p>
+              <p className="text-xs text-white/40">{t('totalHomework')}</p>
             </div>
           </div>
           <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-emerald-500">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
-              <BookOpen className="w-6 h-6" />
+              <CheckCircle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{stats.lessons}</p>
-              <p className="text-xs text-white/40">{t('totalLessons')}</p>
+              <p className="text-3xl font-black text-white">{stats.correctedCount}</p>
+              <p className="text-xs text-white/40">{t('corrected')}</p>
             </div>
           </div>
-          <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-blue-500">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400">
-              <ClipboardList className="w-6 h-6" />
+          <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-amber-500">
+            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400">
+              <Clock className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-3xl font-black text-white">{stats.homeworkSubmissions}</p>
-              <p className="text-xs text-white/40">{t('submissions')}</p>
-            </div>
-          </div>
-          <div className="glass-card p-6 flex items-center gap-4 border-t-2 border-t-white/10">
-            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40">
-              <TrendingUp className="w-6 h-6" />
-            </div>
-            <div>
-              <p className="text-3xl font-black text-white">{t('active')}</p>
-              <p className="text-xs text-white/40">{t('accountStatus')}</p>
+              <p className="text-3xl font-black text-white">{stats.pendingCount}</p>
+              <p className="text-xs text-white/40">{t('pending')}</p>
             </div>
           </div>
         </div>

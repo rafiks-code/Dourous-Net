@@ -312,5 +312,10 @@
   "loadingSubmissions": "جارٍ تحميل الأعمال...",
   "alreadyCorrected": "تم التصحيح مسبقاً",
   "closePanel": "إغلاق",
-  "submissionsFor": "الأعمال المُرسلة لـ"
+  "submissionsFor": "الأعمال المُرسلة لـ",
+  "total": "المجموع",
+  "totalLessons": "الدروس المنشورة",
+  "totalHomework": "الواجبات المنشورة",
+  "corrected": "مُصحَّح",
+  "pending": "قيد الانتظار"
 }
